@@ -98,7 +98,7 @@ export default function Module2TaxSimulator({ user }) {
     setSubmitStatus('กำลังบันทึก...');
 
     // ⚠️ นำ URL จาก Google Apps Script มาใส่ตรงนี้
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/ใส่_URL_ของคุณที่นี่/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
     const payload = {
       userId: "Student_001", // อนาคตเปลี่ยนเป็นดึงจากระบบ Login ได้

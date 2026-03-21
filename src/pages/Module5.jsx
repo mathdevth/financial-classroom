@@ -105,7 +105,7 @@ export default function Module5LifePlanner({ user }) {
     setIsSubmitting(true);
     setSubmitStatus('กำลังบันทึก...');
 
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/ใส่_URL_ของคุณที่นี่/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
     
     // ดึงข้อมูลปีสุดท้ายมาสรุปผล
     const lastYearData = projectionData[projectionData.length - 1];

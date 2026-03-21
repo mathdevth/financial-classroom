@@ -88,27 +88,30 @@ export default function Module1ScamAwareness({ user }) {
 
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
     
-// 2. เปลี่ยน userId ให้ดึงมาจากหน้า Login
+    // ✅ สิ่งที่ถูกต้อง: ต้องมีบรรทัด action: "save"
     const payload = {
-      userId: `${user.id} ${user.name}`, // จะได้ผลลัพธ์เช่น "12345 ด.ช. รักดี"
-      moduleName: "Module 1: Scam Awareness",
-      actionData: `คะแนนแบบทดสอบภัยการเงิน: ${score} / ${scamScenarios.length}`
-    };
+        action: "save",          // ✅ ต้องมีบรรทัดนี้!
+        userId: user.id,         // ✅ ต้องมี user.id (ที่ได้จากหน้า Login)
+        moduleName: "Module 1",  // ✅ ชื่อโมดูล
+        actionData: `คะแนน: ${score}/5` // ✅ รายละเอียด
+      };
 
-    try {
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      setSubmitStatus('บันทึกคะแนนสำเร็จ! ✅');
-    } catch (error) {
-      setSubmitStatus('เกิดข้อผิดพลาดในการบันทึก ❌');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",       // ✅ ต้องเป็น no-cors
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        
+        setSubmitStatus('บันทึกสำเร็จ ✅');
+      } catch (error) {
+        console.error("Error:", error);
+        setSubmitStatus('บันทึกไม่สำเร็จ ❌');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8 bg-slate-50 min-h-screen">
