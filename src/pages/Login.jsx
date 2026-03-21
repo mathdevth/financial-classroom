@@ -8,7 +8,7 @@ export default function Login({ onLogin }) {
   const [isAccepted, setIsAccepted] = useState(false); // สำหรับ PDPA
   const [loading, setLoading] = useState(false);
 
-  const GOOGLE_SCRIPT_URL = "Uhttps://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
