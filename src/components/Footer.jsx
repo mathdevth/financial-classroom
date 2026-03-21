@@ -32,6 +32,7 @@ export default function Footer() {
         <div className="space-y-1">
           <p className="text-xl font-black text-slate-800">คุณครูอชิตพล บุณรัตน์</p>
           <p className="text-slate-500 text-sm font-bold">กลุ่มสาระการเรียนรู้คณิตศาสตร์ โรงเรียนวังโพรงพิทยาคม</p>
+          <p className="text-slate-500 text-sm font-bold">สพม.พิษณุโลก อุตรดิตถ์</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 mt-6">
@@ -62,7 +63,7 @@ export default function Footer() {
   return (
     <footer className="p-8 border-t border-slate-100 bg-white">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-        <p className="text-slate-400 text-sm font-medium">© 2026 The Financial Classroom. สร้างสรรค์โดย ครูอชิตพล</p>
+        <p className="text-slate-400 text-sm font-medium">© 2026 The Financial Classroom. สร้างสรรค์โดย ครูอชิตพล บุณรัตน์</p>
         
         <div className="flex gap-6 text-sm font-bold text-slate-500">
           <button onClick={() => setModalType('privacy')} className="hover:text-blue-600 transition-all">นโยบายความเป็นส่วนตัว</button>
