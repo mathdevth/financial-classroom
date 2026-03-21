@@ -4,17 +4,24 @@ export default function Dashboard({ user }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ⚠️ วาง URL ของ Google Apps Script ของคุณครูที่นี่
+  // ✅ ใส่ URL ของ Google Apps Script ของคุณครูเรียบร้อยครับ
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
   // ฟังก์ชันดึงข้อมูลจริงจากฐานข้อมูล
   const fetchHistory = async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
-      // ใช้ GET เพื่อให้สามารถอ่าน JSON กลับมาได้ (doGet ใน Apps Script)
-      const response = await fetch(`${GOOGLE_SCRIPT_URL}?userId=${user.id}`);
-      const data = await response.json();
-      setHistory(data);
+      // ✅ แก้ไข: เพิ่ม ?action=getHistory เข้าไปเพื่อให้ Script ฝั่ง Google รู้ว่าต้องดึงข้อมูล
+      const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getHistory&userId=${user.id}`);
+      const result = await response.json();
+      
+      // ✅ แก้ไข: ตรวจสอบสถานะ success และดึงข้อมูลจากตัวแปร data
+      if (result.status === "success") {
+        setHistory(result.data || []);
+      } else {
+        console.warn("Server returned error:", result.message);
+      }
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
@@ -35,7 +42,8 @@ export default function Dashboard({ user }) {
 
   // 2. เช็คสถานะแต่ละโมดูลเพื่อเอาไปแสดงในการ์ด
   const checkStatus = (moduleName) => {
-    const record = history.find(item => item.module.includes(moduleName));
+    // ค้นหาประวัติที่ชื่อโมดูลตรงกัน
+    const record = history.find(item => item.module && item.module.includes(moduleName));
     if (record) return { status: 'สำเร็จ', score: record.detail, done: true };
     return { status: 'ยังไม่เริ่ม', score: '-', done: false };
   };
@@ -75,7 +83,7 @@ export default function Dashboard({ user }) {
           </div>
           <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden p-1">
             <div 
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000"
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(59,130,246,0.5)]"
               style={{ width: `${overallProgress}%` }}
             ></div>
           </div>
@@ -124,7 +132,7 @@ export default function Dashboard({ user }) {
         </div>
       </section>
 
-      {/* Activity & Insight: ดึงจากประวัติล่าสุด */}
+      {/* Activity & Insight */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-slate-900 text-white p-10 rounded-3xl relative overflow-hidden flex flex-col justify-between shadow-2xl border border-slate-800">
           <div className="relative z-10 space-y-6">
@@ -148,9 +156,9 @@ export default function Dashboard({ user }) {
             <span className="material-symbols-outlined text-blue-600 font-bold">history</span>
             กิจกรรมล่าสุด
           </h4>
-          <div className="space-y-6 flex-grow">
+          <div className="space-y-6 flex-grow overflow-y-auto max-h-[300px] pr-2">
             {history.length > 0 ? (
-              history.slice(0, 3).map((item, idx) => (
+              history.slice(0, 5).map((item, idx) => (
                 <ActivityItem key={idx} time={item.date} title={item.module} detail={item.detail} />
               ))
             ) : (
@@ -163,7 +171,7 @@ export default function Dashboard({ user }) {
   );
 }
 
-// --- Sub-Components ---
+// --- Sub-Components (คงเดิมแต่ปรับปรุงการแสดงผล) ---
 
 function ModuleCard({ title, desc, icon, data, color }) {
   const isDone = data.done;
@@ -181,7 +189,7 @@ function ModuleCard({ title, desc, icon, data, color }) {
       <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed">{desc}</p>
       <div className="flex items-center justify-between text-xs font-bold pt-4 border-t border-slate-50">
         <span className="text-slate-400">ข้อมูล: {data.score}</span>
-        {isDone && <span className="text-green-600">100%</span>}
+        {isDone && <span className="text-green-600 font-black">100%</span>}
       </div>
     </div>
   );
@@ -194,10 +202,10 @@ function ActivityItem({ time, title, detail }) {
         <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm group-hover:scale-125 transition-transform"></div>
         <div className="w-0.5 h-full bg-slate-50 my-1"></div>
       </div>
-      <div className="pb-2">
-        <div className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{time}</div>
-        <div className="text-sm font-bold text-slate-700 leading-tight">{title}</div>
-        <div className="text-[11px] text-slate-500 mt-1 italic">{detail}</div>
+      <div className="pb-4">
+        <div className="text-[10px] text-slate-400 font-bold uppercase mb-0.5 tracking-tighter">{time}</div>
+        <div className="text-sm font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors">{title}</div>
+        <div className="text-[11px] text-slate-500 mt-1 italic line-clamp-1">{detail}</div>
       </div>
     </div>
   );
