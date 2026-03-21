@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 
 export default function Module2TaxSimulator({ user }) {
-  // 1. สร้าง State เก็บค่าตัวแปรต่างๆ จากฟอร์ม
+  // 1. State สำหรับรายได้แยกตามประเภทมาตรา 40
   const [incomes, setIncomes] = useState({
-    salaryYearly: 0, // เงินได้ประเภทที่ 1 (ต่อปี)
-    otherIncome: 0,  // เงินได้ประเภทที่ 8 (ขายของออนไลน์ ฯลฯ)
+    m40_1: 0, // เงินเดือน/โบนัส
+    m40_2: 0, // รับเหมา/นายหน้า
+    m40_3: 0, // ค่าลิขสิทธิ์
+    m40_8: 0, // ธุรกิจ/ขายของออนไลน์
   });
 
   const [deductions, setDeductions] = useState({
     lifeInsurance: 0,
-    rmf: 0,
+    rmf_ssf: 0,
+    socialSecurity: 0,
   });
 
-  // State สำหรับเก็บผลลัพธ์การคำนวณ
   const [result, setResult] = useState({
     totalIncome: 0,
     totalExpense: 0,
@@ -22,59 +24,58 @@ export default function Module2TaxSimulator({ user }) {
     isCalculated: false
   });
 
-  // State สำหรับสถานะการส่งข้อมูล
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
 
-  // 2. ฟังก์ชันอัปเดตค่าเมื่อผู้ใช้พิมพ์ตัวเลข
-  const handleIncomeChange = (e) => {
-    setIncomes({ ...incomes, [e.target.name]: Number(e.target.value) });
+  // ฟังก์ชันจัดการการพิมพ์ (จำกัดเฉพาะตัวเลข)
+  const handleInputChange = (e, setter, state) => {
+    const value = e.target.value.replace(/[^0-9]/g, ''); // กรองเฉพาะตัวเลข
+    setter({ ...state, [e.target.name]: Number(value) });
   };
 
-  const handleDeductionChange = (e) => {
-    setDeductions({ ...deductions, [e.target.name]: Number(e.target.value) });
-  };
-
-  // 3. ลอจิกการคำนวณภาษี (Logic & Formulas)
+  // 3. คำนวณภาษีตามกฎหมายไทย
   const calculateTax = () => {
-    // 3.1 รวมรายได้
-    const totalInc = incomes.salaryYearly + incomes.otherIncome;
+    // 3.1 รวมรายได้ทั้งหมด
+    const totalInc = incomes.m40_1 + incomes.m40_2 + incomes.m40_3 + incomes.m40_8;
 
-    // 3.2 หักค่าใช้จ่าย: ประเภทที่ 1 หัก 50% แต่ไม่เกิน 100,000 บาท
-    const salaryExpense = Math.min(incomes.salaryYearly * 0.5, 100000);
-    const totalExp = salaryExpense; // สมมติว่าประเภท 8 ยังไม่หักค่าใช้จ่ายในเวอร์ชันพื้นฐานนี้
+    // 3.2 หักค่าใช้จ่าย (Expenses)
+    // มาตรา 40(1) และ 40(2) หักรวมกันได้ 50% แต่ไม่เกิน 100,000 บาท
+    const exp1_2 = Math.min((incomes.m40_1 + incomes.m40_2) * 0.5, 100000);
+    // มาตรา 40(3) หักได้ 50% ไม่เกิน 100,000 บาท
+    const exp3 = Math.min(incomes.m40_3 * 0.5, 100000);
+    // มาตรา 40(8) สมมติหักเหมาแบบธุรกิจทั่วไป 60%
+    const exp8 = incomes.m40_8 * 0.6;
+    
+    const totalExp = exp1_2 + exp3 + exp8;
 
-    // 3.3 หักค่าลดหย่อน: ส่วนตัว 60,000 + ประกันชีวิต (สูงสุด 100,000) + RMF
-    const personalDeduction = 60000;
-    const validLifeInsurance = Math.min(deductions.lifeInsurance, 100000);
-    const totalDed = personalDeduction + validLifeInsurance + deductions.rmf;
+    // 3.3 หักค่าลดหย่อน (Deductions)
+    const personalDeduction = 60000; // ลดหย่อนส่วนตัวพื้นฐาน
+    const validLifeIns = Math.min(deductions.lifeInsurance, 100000);
+    const totalDed = personalDeduction + validLifeIns + deductions.rmf_ssf + deductions.socialSecurity;
 
-    // 3.4 หารายได้สุทธิ
+    // 3.4 รายได้สุทธิ
     let netInc = totalInc - totalExp - totalDed;
     if (netInc < 0) netInc = 0;
 
-    // 3.5 คำนวณภาษีแบบขั้นบันได
+    // 3.5 ภาษีขั้นบันได
     let tax = 0;
-    let remainingNetIncome = netInc;
-
-    // ตารางขั้นบันได: [เงินได้สูงสุดในขั้นนี้, อัตราภาษี]
+    let tempNet = netInc;
     const brackets = [
-      { limit: 150000, rate: 0.0 }, // 0 - 150,000 (ยกเว้น)
-      { limit: 150000, rate: 0.05 }, // 150,001 - 300,000 (150,000 ส่วนนี้)
-      { limit: 200000, rate: 0.10 }, // 300,001 - 500,000 (200,000 ส่วนนี้)
-      { limit: 250000, rate: 0.15 }, // 500,001 - 750,000 (250,000 ส่วนนี้)
-      { limit: 250000, rate: 0.20 }, // 750,001 - 1,000,000
-      { limit: 1000000, rate: 0.25 }, // 1,000,001 - 2,000,000
-      { limit: 3000000, rate: 0.30 }, // 2,000,001 - 5,000,000
-      { limit: Infinity, rate: 0.35 } // มากกว่า 5,000,000
+      { limit: 150000, rate: 0 },
+      { limit: 150000, rate: 0.05 },
+      { limit: 200000, rate: 0.10 },
+      { limit: 250000, rate: 0.15 },
+      { limit: 250000, rate: 0.20 },
+      { limit: 1000000, rate: 0.25 },
+      { limit: 3000000, rate: 0.30 },
+      { limit: Infinity, rate: 0.35 }
     ];
 
-    for (let i = 0; i < brackets.length; i++) {
-      if (remainingNetIncome <= 0) break;
-      
-      const taxableAmountInBracket = Math.min(remainingNetIncome, brackets[i].limit);
-      tax += taxableAmountInBracket * brackets[i].rate;
-      remainingNetIncome -= taxableAmountInBracket;
+    for (const b of brackets) {
+      if (tempNet <= 0) break;
+      const taxable = Math.min(tempNet, b.limit);
+      tax += taxable * b.rate;
+      tempNet -= taxable;
     }
 
     setResult({
@@ -87,146 +88,130 @@ export default function Module2TaxSimulator({ user }) {
     });
   };
 
-  // 4. ฟังก์ชันส่งข้อมูลเข้า Google Sheets
   const saveToGoogleSheets = async () => {
-    if (!result.isCalculated) {
-      alert("กรุณากดคำนวณภาษีก่อนบันทึกข้อมูล");
-      return;
-    }
-
+    if (!result.isCalculated) return alert("กรุณากดคำนวณก่อนครับ");
     setIsSubmitting(true);
-    setSubmitStatus('กำลังบันทึก...');
-
-    // ⚠️ นำ URL จาก Google Apps Script มาใส่ตรงนี้
+    
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
     const payload = {
-      userId: "Student_001", // อนาคตเปลี่ยนเป็นดึงจากระบบ Login ได้
-      moduleName: "Module 2: Tax Simulator",
-      actionData: `รายได้สุทธิ: ${result.netIncome} | ภาษีที่ต้องจ่าย: ${result.taxToPay}`
+      action: "save", // ✅ เพิ่ม action เพื่อให้ script รู้ว่าต้องบันทึก
+      userId: user.id, // ✅ ใช้ id จริงจาก User
+      moduleName: "Module 2: คำนวณภาษี",
+      actionData: `รายได้สุทธิ: ฿${result.netIncome.toLocaleString()} | ภาษีที่ต้องจ่าย: ฿${result.taxToPay.toLocaleString()}`
     };
 
     try {
       await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
-        mode: "no-cors", // ใช้ no-cors เพื่อเลี่ยงปัญหา Cross-Origin ในการยิงเข้า Google Scripts
+        mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      
-      setSubmitStatus('บันทึกข้อมูลสำเร็จ! ✅');
-      setTimeout(() => setSubmitStatus(''), 3000); // เคลียร์ข้อความหลัง 3 วินาที
+      setSubmitStatus('บันทึกสำเร็จ ✅');
+      setTimeout(() => setSubmitStatus(''), 3000);
     } catch (error) {
-      console.error("Error:", error);
-      setSubmitStatus('เกิดข้อผิดพลาดในการบันทึก ❌');
+      setSubmitStatus('บันทึกล้มเหลว ❌');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // --- ส่วนแสดงผล UI (ดัดแปลงจาก HTML เดิมของคุณ) ---
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 bg-slate-50 min-h-screen">
+    <div className="p-8 max-w-6xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans">
       
-      {/* Header & Result Summary */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-end bg-white p-8 rounded-xl shadow-sm border border-slate-200">
-        <div className="lg:col-span-2">
-          <span className="text-slate-500 font-bold text-sm uppercase tracking-widest mb-2 block">
-            สรุปภาษีที่ต้องชำระ (จำลอง)
-          </span>
-          <h2 className="text-5xl md:text-6xl font-extrabold text-blue-900 tracking-tighter">
-            ฿{result.taxToPay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      {/* ส่วนแสดงผลลัพธ์ (สวยงาม มีคอมม่า) */}
+      <section className="bg-white p-8 rounded-3xl shadow-xl border border-blue-100 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+        <div className="relative z-10">
+          <span className="text-blue-600 font-black text-xs uppercase tracking-widest mb-2 block">ประมาณการภาษีที่ต้องชำระ</span>
+          <h2 className="text-6xl font-black text-slate-900 tracking-tighter">
+            ฿{result.taxToPay.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </h2>
-          <p className="text-slate-500 mt-4 text-lg">
-            คำนวณจากรายได้สุทธิ ฿{result.netIncome.toLocaleString()} (หลังหักค่าใช้จ่ายและค่าลดหย่อนแล้ว)
-          </p>
+          <p className="text-slate-400 mt-2 font-bold uppercase text-[10px]">รายได้สุทธิที่นำมาคำนวณ: ฿{result.netIncome.toLocaleString()}</p>
         </div>
-        
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-3">
-          <button 
-            onClick={calculateTax}
-            className="w-full py-4 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-all active:scale-95"
-          >
-            คำนวณผลลัพธ์
+        <div className="flex flex-col gap-3 w-full md:w-64 relative z-10">
+          <button onClick={calculateTax} className="w-full py-4 bg-blue-600 text-white font-black rounded-2xl shadow-lg hover:bg-blue-700 active:scale-95 transition-all">คำนวณผลลัพธ์</button>
+          <button onClick={saveToGoogleSheets} disabled={isSubmitting} className="w-full py-3 bg-white border-2 border-green-500 text-green-600 font-black rounded-2xl hover:bg-green-50 active:scale-95 transition-all disabled:opacity-50">
+            {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกลงฐานข้อมูล'}
           </button>
-          <button 
-            onClick={saveToGoogleSheets}
-            disabled={isSubmitting}
-            className={`w-full py-3 font-bold rounded-lg transition-all border-2 ${
-              isSubmitting ? 'border-slate-300 text-slate-400 bg-slate-100' : 'border-green-600 text-green-700 hover:bg-green-50'
-            }`}
-          >
-            {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกประวัติลงฐานข้อมูล'}
-          </button>
-          {submitStatus && <p className="text-center text-sm font-bold text-green-600 animate-pulse">{submitStatus}</p>}
+          {submitStatus && <p className="text-center text-xs font-black text-green-600 animate-bounce">{submitStatus}</p>}
         </div>
       </section>
 
-      {/* Inputs Area */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* รายได้ */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-          <h3 className="text-lg font-bold text-slate-800 border-b pb-2">1. รายได้ (Income)</h3>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-600">เงินเดือน/รายได้ประจำ ทั้งปี (บาท)</label>
-            <input 
-              type="number" name="salaryYearly" 
-              value={incomes.salaryYearly || ''} onChange={handleIncomeChange}
-              className="w-full px-4 py-3 bg-slate-100 border-none rounded focus:ring-2 focus:ring-blue-500 font-bold"
-              placeholder="เช่น 360000"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-600">รายได้อื่นๆ / ขายของออนไลน์ ทั้งปี (บาท)</label>
-            <input 
-              type="number" name="otherIncome" 
-              value={incomes.otherIncome || ''} onChange={handleIncomeChange}
-              className="w-full px-4 py-3 bg-slate-100 border-none rounded focus:ring-2 focus:ring-blue-500 font-bold"
-              placeholder="เช่น 50000"
-            />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* คอลัมน์ซ้าย: รายได้ (ละเอียดยิบ) */}
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
+          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2 border-b pb-4">
+            <span className="material-symbols-outlined text-blue-600">payments</span>
+            ประเภทเงินได้ (Annual Income)
+          </h3>
+          <div className="grid grid-cols-1 gap-4">
+            <InputField label="40(1) เงินเดือน / โบนัส ทั้งปี" name="m40_1" value={incomes.m40_1} onChange={(e) => handleInputChange(e, setIncomes, incomes)} />
+            <InputField label="40(2) ค่ารับเหมาแรงงาน / นายหน้า" name="m40_2" value={incomes.m40_2} onChange={(e) => handleInputChange(e, setIncomes, incomes)} />
+            <InputField label="40(3) ค่าลิขสิทธิ์ / สิทธิบัตร" name="m40_3" value={incomes.m40_3} onChange={(e) => handleInputChange(e, setIncomes, incomes)} />
+            <InputField label="40(8) ธุรกิจ / ขายของออนไลน์ / อื่นๆ" name="m40_8" value={incomes.m40_8} onChange={(e) => handleInputChange(e, setIncomes, incomes)} />
           </div>
         </div>
 
-        {/* ลดหย่อน */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-          <h3 className="text-lg font-bold text-slate-800 border-b pb-2">2. ค่าลดหย่อนเพิ่มเติม (Deductions)</h3>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-600">เบี้ยประกันชีวิต (ลดหย่อนได้สูงสุด 1 แสนบาท)</label>
-            <input 
-              type="number" name="lifeInsurance" 
-              value={deductions.lifeInsurance || ''} onChange={handleDeductionChange}
-              className="w-full px-4 py-3 bg-slate-100 border-none rounded focus:ring-2 focus:ring-blue-500 font-bold"
-              placeholder="เช่น 15000"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-600">ซื้อกองทุน RMF (บาท)</label>
-            <input 
-              type="number" name="rmf" 
-              value={deductions.rmf || ''} onChange={handleDeductionChange}
-              className="w-full px-4 py-3 bg-slate-100 border-none rounded focus:ring-2 focus:ring-blue-500 font-bold"
-              placeholder="เช่น 10000"
-            />
+        {/* คอลัมน์ขวา: ค่าลดหย่อน */}
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
+          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2 border-b pb-4">
+            <span className="material-symbols-outlined text-green-600">redeem</span>
+            ค่าลดหย่อน (Deductions)
+          </h3>
+          <div className="grid grid-cols-1 gap-4">
+            <InputField label="เบี้ยประกันชีวิต (สูงสุด 100,000)" name="lifeInsurance" value={deductions.lifeInsurance} onChange={(e) => handleInputChange(e, setDeductions, deductions)} />
+            <InputField label="กองทุน RMF / SSF" name="rmf_ssf" value={deductions.rmf_ssf} onChange={(e) => handleInputChange(e, setDeductions, deductions)} />
+            <InputField label="เงินสมทบประกันสังคม" name="socialSecurity" value={deductions.socialSecurity} onChange={(e) => handleInputChange(e, setDeductions, deductions)} />
+            <div className="p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              <p className="text-[11px] font-bold text-slate-400 uppercase">ลดหย่อนพื้นฐานอัตโนมัติ</p>
+              <p className="text-sm font-black text-slate-600">ค่าลดหย่อนส่วนตัว: ฿60,000</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Breakdown Info */}
+      {/* สรุปรายละเอียดขั้นบันได */}
       {result.isCalculated && (
-        <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 text-blue-900">
-          <h3 className="font-bold mb-4">สรุปที่มาของรายได้สุทธิ:</h3>
-          <ul className="space-y-2 text-sm">
-            <li className="flex justify-between"><span>รวมรายได้พึงประเมิน:</span> <span>฿{result.totalIncome.toLocaleString()}</span></li>
-            <li className="flex justify-between"><span>หักค่าใช้จ่ายเหมา (สูงสุด 1 แสน):</span> <span className="text-red-600">- ฿{result.totalExpense.toLocaleString()}</span></li>
-            <li className="flex justify-between"><span>หักค่าลดหย่อน (ส่วนตัว 6 หมื่น + สิทธิอื่นๆ):</span> <span className="text-red-600">- ฿{result.totalDeduction.toLocaleString()}</span></li>
-            <li className="flex justify-between font-bold text-lg pt-2 border-t border-blue-200">
-              <span>รายได้สุทธิเพื่อนำไปคิดภาษี:</span> <span>฿{result.netIncome.toLocaleString()}</span>
-            </li>
-          </ul>
-        </div>
+        <section className="bg-slate-900 text-white p-8 rounded-3xl shadow-2xl animate-fadeIn">
+          <h3 className="text-xl font-black mb-6 border-b border-slate-800 pb-4">รายละเอียดการคำนวณ</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+            <div className="space-y-3">
+              <div className="flex justify-between"><span>รวมรายได้ทั้งหมด:</span> <span className="font-bold">฿{result.totalIncome.toLocaleString()}</span></div>
+              <div className="flex justify-between text-red-400"><span>หักค่าใช้จ่ายตามประเภทรายได้:</span> <span>- ฿{result.totalExpense.toLocaleString()}</span></div>
+              <div className="flex justify-between text-red-400"><span>หักค่าลดหย่อนทั้งหมด:</span> <span>- ฿{result.totalDeduction.toLocaleString()}</span></div>
+            </div>
+            <div className="p-6 bg-blue-600/20 rounded-2xl border border-blue-500/30">
+              <p className="text-xs font-bold text-blue-400 uppercase mb-1">รายได้สุทธิเพื่อคำนวณภาษี</p>
+              <p className="text-3xl font-black">฿{result.netIncome.toLocaleString()}</p>
+            </div>
+          </div>
+        </section>
       )}
+    </div>
+  );
+}
 
+// Sub-Component สำหรับ Input (มีคอมม่าแสดงกำกับ)
+function InputField({ label, name, value, onChange }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">{label}</label>
+      <div className="relative">
+        <input 
+          type="text" 
+          name={name}
+          value={value === 0 ? '' : value}
+          onChange={onChange}
+          placeholder="0"
+          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-black text-slate-700"
+        />
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 uppercase">บาท</span>
+      </div>
+      <p className="text-[10px] font-bold text-blue-500 text-right mr-2 mt-1">
+        = {value.toLocaleString()} ฿
+      </p>
     </div>
   );
 }
