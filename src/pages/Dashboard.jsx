@@ -1,206 +1,204 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function Dashboard() {
-  const studentName = "อชิตพล";
-  const overallProgress = 68;
+export default function Dashboard({ user }) {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // ⚠️ วาง URL ของ Google Apps Script ของคุณครูที่นี่
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
+
+  // ฟังก์ชันดึงข้อมูลจริงจากฐานข้อมูล
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      // ใช้ GET เพื่อให้สามารถอ่าน JSON กลับมาได้ (doGet ใน Apps Script)
+      const response = await fetch(`${GOOGLE_SCRIPT_URL}?userId=${user.id}`);
+      const data = await response.json();
+      setHistory(data);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, [user.id]);
+
+  // --- 🧮 ส่วนคำนวณข้อมูลจริงจากฐานข้อมูล ---
+  
+  // 1. นับว่าเรียนจบไปกี่โมดูลแล้ว (นับเฉพาะชื่อโมดูลที่ไม่ซ้ำกัน)
+  const completedModulesList = [...new Set(history.map(item => item.module))];
+  const completedCount = completedModulesList.length;
+  const overallProgress = Math.round((completedCount / 5) * 100);
+
+  // 2. เช็คสถานะแต่ละโมดูลเพื่อเอาไปแสดงในการ์ด
+  const checkStatus = (moduleName) => {
+    const record = history.find(item => item.module.includes(moduleName));
+    if (record) return { status: 'สำเร็จ', score: record.detail, done: true };
+    return { status: 'ยังไม่เริ่ม', score: '-', done: false };
+  };
 
   return (
-    <div className="p-8 lg:p-12 max-w-7xl mx-auto space-y-12 bg-slate-50 min-h-screen">
+    <div className="p-8 lg:p-12 max-w-7xl mx-auto space-y-12 bg-slate-50 min-h-screen animate-fadeIn">
       
-      {/* Dashboard Header Section */}
+      {/* Header: แสดงชื่อผู้ใช้จริง */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-2">
-          <h2 className="text-4xl font-extrabold text-blue-900 tracking-tight">ภาพรวมการเรียนรู้</h2>
-          <p className="text-slate-600 font-medium text-lg">ยินดีต้อนรับกลับมาครับ ครู{studentName}! คุณกำลังทำผลงานได้ยอดเยี่ยมในสัปดาห์นี้</p>
+          <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">ภาพรวมการเรียนรู้</h2>
+          <p className="text-slate-600 font-medium text-lg">
+            ยินดีต้อนรับครับ <span className="text-blue-600 font-bold">คุณ{user.name}</span>! 
+            {history.length > 0 ? ' มาดูความก้าวหน้าของคุณกัน' : ' เริ่มต้นบทเรียนแรกได้เลยครับ'}
+          </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors shadow-sm active:scale-95">
-            <span className="material-symbols-outlined text-xl">sync</span>
-            <span>ซิงค์ข้อมูล</span>
-          </button>
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md active:scale-95">
-            <span className="material-symbols-outlined text-xl">picture_as_pdf</span>
-            <span>โหลดสรุป PDF</span>
+          <button 
+            onClick={fetchHistory}
+            disabled={loading}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined text-xl ${loading ? 'animate-spin' : ''}`}>sync</span>
+            <span>{loading ? 'กำลังโหลด...' : 'ซิงค์ข้อมูล'}</span>
           </button>
         </div>
       </section>
 
-      {/* Learning Progress Banner */}
-      <section className="bg-white rounded-2xl p-8 flex flex-col md:flex-row items-center gap-10 shadow-sm border border-slate-200">
-        <div className="flex-grow space-y-4 w-full">
+      {/* Progress Banner: คำนวณ % จริงจากฐานข้อมูล */}
+      <section className="bg-white rounded-3xl p-8 flex flex-col md:flex-row items-center gap-10 shadow-sm border border-slate-100 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+        
+        <div className="flex-grow space-y-4 w-full relative z-10">
           <div className="flex justify-between items-end">
             <h3 className="text-xl font-bold text-slate-800">ความคืบหน้าการเรียนรู้โดยรวม</h3>
             <span className="text-4xl font-black text-blue-600">{overallProgress}%</span>
           </div>
-          <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden">
+          <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden p-1">
             <div 
-              className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-1000"
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000"
               style={{ width: `${overallProgress}%` }}
             ></div>
           </div>
-          <p className="text-sm text-slate-500 font-medium">คุณทำภารกิจสำเร็จไปแล้ว 3 จาก 5 โมดูลหลัก สู้ต่อไป!</p>
+          <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
+            <span className="material-symbols-outlined text-blue-500 text-sm">info</span>
+            คุณเรียนจบไปแล้ว {completedCount} จาก 5 โมดูลหลัก
+          </p>
         </div>
         
-        {/* Status Indicator */}
-        <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 w-full md:w-auto shrink-0">
-          <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]"></div>
+        <div className="flex items-center gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-100 w-full md:w-auto shrink-0 relative z-10">
+          <div className={`w-3 h-3 rounded-full ${history.length > 0 ? 'bg-green-500' : 'bg-orange-400'} animate-pulse`}></div>
           <div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">สถานะระบบ</div>
-            <div className="text-sm font-bold text-slate-700">เชื่อมต่อ Google Sheets แล้ว</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">สถานะปัจจุบัน</div>
+            <div className="text-sm font-bold text-slate-700">{history.length > 0 ? 'มีประวัติการเรียน' : 'ยังไม่มีข้อมูล'}</div>
           </div>
         </div>
       </section>
 
-      {/* Module Status Bento Grid */}
+      {/* Module Cards: แสดงสถานะจริงตาม Module ที่เคยเรียน */}
       <section>
         <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-blue-600">view_module</span> 
-          สถานะรายโมดูล
+          <span className="material-symbols-outlined text-blue-600">grid_view</span> 
+          สถานะรายโมดูล (ข้อมูลจริง)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          
-          {/* Card 1 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col h-full">
-            <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
-            <div className="flex justify-between items-start mb-6">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
-                <span className="material-symbols-outlined text-2xl">security</span>
-              </div>
-              <span className="text-[10px] font-bold text-green-700 px-2 py-1 bg-green-100 rounded uppercase tracking-wider">สำเร็จ</span>
-            </div>
-            <h4 className="font-bold text-lg mb-2 text-slate-800">1. รู้เท่าทันภัย</h4>
-            <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed">ป้องกันตัวจากการฉ้อโกงและภัยไซเบอร์</p>
-            <div className="flex items-center justify-between text-xs font-bold text-slate-400 pt-4 border-t border-slate-100">
-              <span>คะแนน: 5/5</span>
-              <span className="text-green-600">100%</span>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col h-full">
-            <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
-            <div className="flex justify-between items-start mb-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                <span className="material-symbols-outlined text-2xl">receipt_long</span>
-              </div>
-              <span className="text-[10px] font-bold text-green-700 px-2 py-1 bg-green-100 rounded uppercase tracking-wider">สำเร็จ</span>
-            </div>
-            <h4 className="font-bold text-lg mb-2 text-slate-800">2. คำนวณภาษี</h4>
-            <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed">วางแผนภาษีและใช้สิทธิลดหย่อน</p>
-            <div className="flex items-center justify-between text-xs font-bold text-slate-400 pt-4 border-t border-slate-100">
-              <span>ประหยัดภาษี: 12k</span>
-              <span className="text-green-600">100%</span>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col h-full">
-            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-            <div className="flex justify-between items-start mb-6">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
-                <span className="material-symbols-outlined text-2xl">calculate</span>
-              </div>
-              <span className="text-[10px] font-bold text-blue-700 px-2 py-1 bg-blue-100 rounded uppercase tracking-wider animate-pulse">กำลังเรียน</span>
-            </div>
-            <h4 className="font-bold text-lg mb-2 text-slate-800">3. เครื่องคิดเลข TVM</h4>
-            <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed">พลังของดอกเบี้ยทบต้นและมูลค่าเงิน</p>
-            <div className="pt-4 border-t border-slate-100">
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mb-1">
-                <div className="bg-blue-500 h-full w-[40%] rounded-full"></div>
-              </div>
-              <span className="text-[10px] font-bold text-slate-400">40% Complete</span>
-            </div>
-          </div>
-
-          {/* Card 4 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col h-full opacity-70 grayscale-[30%]">
-            <div className="absolute top-0 left-0 w-1 h-full bg-slate-300"></div>
-            <div className="flex justify-between items-start mb-6">
-              <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
-                <span className="material-symbols-outlined text-2xl">elderly</span>
-              </div>
-              <span className="text-[10px] font-bold text-slate-500 px-2 py-1 bg-slate-100 rounded uppercase tracking-wider">ยังไม่เริ่ม</span>
-            </div>
-            <h4 className="font-bold text-lg mb-2 text-slate-800">4. แผนเกษียณ</h4>
-            <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed">เตรียมความพร้อมสู่วัยเกษียณ</p>
-            <button className="w-full py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors mt-auto">
-              เริ่มบทเรียน
-            </button>
-          </div>
-
-          {/* Card 5 */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden flex flex-col h-full opacity-70 grayscale-[30%]">
-            <div className="absolute top-0 left-0 w-1 h-full bg-slate-300"></div>
-            <div className="flex justify-between items-start mb-6">
-              <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
-                <span className="material-symbols-outlined text-2xl">emoji_events</span>
-              </div>
-              <span className="text-[10px] font-bold text-slate-500 px-2 py-1 bg-slate-100 rounded uppercase tracking-wider">ยังไม่เริ่ม</span>
-            </div>
-            <h4 className="font-bold text-lg mb-2 text-slate-800">5. แผนตลอดชีพ</h4>
-            <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed">กระแสเงินสดจำลอง (Capstone)</p>
-            <button className="w-full py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors mt-auto">
-              ถูกล็อกไว้
-            </button>
-          </div>
-
+          <ModuleCard 
+            title="1. รู้เท่าทันภัย" desc="ป้องกันภัยไซเบอร์" icon="security" 
+            data={checkStatus("Module 1")} color="green"
+          />
+          <ModuleCard 
+            title="2. คำนวณภาษี" desc="วางแผนลดหย่อนภาษี" icon="receipt_long" 
+            data={checkStatus("Module 2")} color="green"
+          />
+          <ModuleCard 
+            title="3. เครื่องคิดเลข TVM" desc="มูลค่าเงินตามเวลา" icon="calculate" 
+            data={checkStatus("Module 3")} color="blue"
+          />
+          <ModuleCard 
+            title="4. แผนเกษียณ" desc="เตรียมตัวสู่วัยเกษียณ" icon="elderly" 
+            data={checkStatus("Module 4")} color="orange"
+          />
+          <ModuleCard 
+            title="5. แผนตลอดชีพ" desc="กระแสเงินสดจำลอง" icon="emoji_events" 
+            data={checkStatus("Module 5")} color="purple"
+          />
         </div>
       </section>
 
-      {/* Bottom Section: AI Insight & Activity */}
+      {/* Activity & Insight: ดึงจากประวัติล่าสุด */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        <div className="lg:col-span-2 bg-slate-900 text-white p-8 lg:p-10 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-lg">
+        <div className="lg:col-span-2 bg-slate-900 text-white p-10 rounded-3xl relative overflow-hidden flex flex-col justify-between shadow-2xl border border-slate-800">
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
+              <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
                 <span className="material-symbols-outlined text-blue-400 text-3xl">psychology</span>
               </div>
-              <h3 className="text-2xl font-bold">AI Intelligence Insight</h3>
+              <h3 className="text-2xl font-bold tracking-tight">AI Intelligence Insight</h3>
             </div>
             <p className="text-slate-300 text-lg leading-relaxed max-w-xl">
-              จากการวิเคราะห์พฤติกรรมการเรียนของคุณ แนะนำให้ทดลองใช้ <span className="text-blue-400 font-bold underline underline-offset-4">เครื่องคิดเลข TVM</span> เพิ่มเติม โดยลองปรับ "จำนวนครั้งที่ทบต้นต่อปี" เป็นรายเดือน เพื่อดูความแตกต่างของผลลัพธ์ที่ชัดเจนขึ้น
+              {history.length > 0 
+                ? `ยินดีด้วยครับคุณ ${user.name}! คุณเรียนเรื่อง ${history[0].module} ล่าสุด แนะนำให้ลองทบทวนเรื่องดอกเบี้ยทบต้นในโมดูลที่ 3 ต่อเพื่อผลลัพธ์ที่ดีขึ้นครับ`
+                : "ยินดีต้อนรับสมาชิกใหม่! แนะนำให้คุณเริ่มจากโมดูลที่ 1 เพื่อสร้างพื้นฐานภูมิคุ้มกันทางการเงินที่แข็งแกร่งครับ"}
             </p>
-            <button className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-all active:scale-95 shadow-md flex items-center gap-2 w-fit">
-              ไปที่โมดูล 3 ทันที <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </button>
           </div>
-          
-          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-600/20 rounded-full blur-[80px]"></div>
+          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px]"></div>
         </div>
 
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <h4 className="font-bold text-slate-800 text-lg mb-6 border-b pb-4">กิจกรรมล่าสุดของคุณ</h4>
-            <div className="space-y-6">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <div className="w-0.5 h-full bg-slate-100 my-1"></div>
-                </div>
-                <div className="pb-4">
-                  <div className="text-xs text-slate-400 font-bold uppercase mb-1">วันนี้, 09:45 น.</div>
-                  <div className="text-sm font-bold text-slate-700">จำลองการคำนวณภาษีเสร็จสิ้น</div>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <div className="w-0.5 h-full bg-slate-100 my-1"></div>
-                </div>
-                <div className="pb-4">
-                  <div className="text-xs text-slate-400 font-bold uppercase mb-1">เมื่อวานนี้</div>
-                  <div className="text-sm font-bold text-slate-700">ทำแบบทดสอบ "รู้เท่าทันภัย"</div>
-                </div>
-              </div>
-            </div>
+        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col">
+          <h4 className="font-bold text-slate-800 text-lg mb-6 flex items-center gap-2 border-b pb-4">
+            <span className="material-symbols-outlined text-blue-600 font-bold">history</span>
+            กิจกรรมล่าสุด
+          </h4>
+          <div className="space-y-6 flex-grow">
+            {history.length > 0 ? (
+              history.slice(0, 3).map((item, idx) => (
+                <ActivityItem key={idx} time={item.date} title={item.module} detail={item.detail} />
+              ))
+            ) : (
+              <div className="text-center py-10 text-slate-400 italic text-sm">ยังไม่มีประวัติการเรียน</div>
+            )}
           </div>
-          <button className="mt-8 w-full py-3 bg-slate-50 text-slate-600 font-bold rounded-lg hover:bg-slate-100 transition-colors border border-slate-200 text-sm">
-            ดูประวัติทั้งหมด
-          </button>
         </div>
-
       </section>
+    </div>
+  );
+}
+
+// --- Sub-Components ---
+
+function ModuleCard({ title, desc, icon, data, color }) {
+  const isDone = data.done;
+  return (
+    <div className={`bg-white p-6 rounded-2xl shadow-sm border transition-all relative overflow-hidden flex flex-col h-full ${isDone ? 'border-green-100' : 'border-slate-100 opacity-80'}`}>
+      <div className="flex justify-between items-start mb-6">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDone ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+          <span className="material-symbols-outlined text-2xl">{icon}</span>
+        </div>
+        <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase ${isDone ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+          {data.status}
+        </span>
+      </div>
+      <h4 className="font-bold text-lg mb-2 text-slate-800">{title}</h4>
+      <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed">{desc}</p>
+      <div className="flex items-center justify-between text-xs font-bold pt-4 border-t border-slate-50">
+        <span className="text-slate-400">ข้อมูล: {data.score}</span>
+        {isDone && <span className="text-green-600">100%</span>}
+      </div>
+    </div>
+  );
+}
+
+function ActivityItem({ time, title, detail }) {
+  return (
+    <div className="flex gap-4 group">
+      <div className="flex flex-col items-center">
+        <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm group-hover:scale-125 transition-transform"></div>
+        <div className="w-0.5 h-full bg-slate-50 my-1"></div>
+      </div>
+      <div className="pb-2">
+        <div className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{time}</div>
+        <div className="text-sm font-bold text-slate-700 leading-tight">{title}</div>
+        <div className="text-[11px] text-slate-500 mt-1 italic">{detail}</div>
+      </div>
     </div>
   );
 }
