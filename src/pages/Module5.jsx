@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Module5LifePlanner() {
+export default function Module5LifePlanner({ user }) {
   // 1. State สำหรับตัวแปรนำเข้า (ข้อมูลพื้นฐาน)
   const [inputs, setInputs] = useState({
     startingSalary: 15000,   // เงินเดือนเริ่มต้น

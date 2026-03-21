@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Module2TaxSimulator() {
+export default function Module2TaxSimulator({ user }) {
   // 1. สร้าง State เก็บค่าตัวแปรต่างๆ จากฟอร์ม
   const [incomes, setIncomes] = useState({
     salaryYearly: 0, // เงินได้ประเภทที่ 1 (ต่อปี)

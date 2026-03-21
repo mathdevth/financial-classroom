@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Module3TVMCalculator() {
+export default function Module3TVMCalculator({ user }) {
   // 1. State สำหรับตัวเลือกประเภทการคำนวณ
   // FV_SINGLE = เงินก้อนเดียว (หามูลค่าอนาคต)
   // PV_SINGLE = เงินก้อนเดียว (หามูลค่าปัจจุบัน)

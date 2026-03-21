@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Module4RetirementPlanner() {
+export default function Module4RetirementPlanner({ user }) {
   // 1. State สำหรับเก็บข้อมูลการวางแผน
   const [planInputs, setPlanInputs] = useState({
     currentAge: 25,        // อายุปัจจุบัน
