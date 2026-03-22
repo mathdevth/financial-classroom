@@ -12,13 +12,15 @@ export default function Dashboard({ user }) {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getHistory&userId=${user.id}`);
+      // ✅ เติม &t= ด้านหลังเพื่อกัน Browser จำค่าเก่า (Cache) ทำให้ข้อมูลสดใหม่เสมอ
+      const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getHistory&userId=${user.id}&t=${new Date().getTime()}`);
       const result = await response.json();
       
       if (result.status === "success") {
-        // ✅ เพิ่ม .reverse() ตรงนี้ เพื่อให้ข้อมูลล่าสุดเด้งมาอยู่บนสุดเสมอ
-        const reversedData = result.data ? [...result.data].reverse() : [];
-        setHistory(reversedData);
+        // 🚨 จุดสำคัญ: ฝั่ง Google Script เรียงจากใหม่ไปเก่ามาให้แล้ว 
+        // เราจึงเอามาใช้งานได้เลยโดยไม่ต้อง .reverse() ซ้ำครับ
+        const freshData = result.data || [];
+        setHistory(freshData);
       } else {
         console.warn("Server returned error:", result.message);
       }
@@ -35,14 +37,15 @@ export default function Dashboard({ user }) {
 
   // --- 🧮 ส่วนคำนวณข้อมูลจริงจากฐานข้อมูล ---
   
-  // 1. นับว่าเรียนจบไปกี่โมดูลแล้ว (นับเฉพาะชื่อโมดูลที่ไม่ซ้ำกัน)
+  // 1. นับว่าเรียนจบไปกี่โมดูลแล้ว
   const completedModulesList = [...new Set(history.map(item => item.module))];
   const completedCount = completedModulesList.length;
   const overallProgress = Math.round((completedCount / 5) * 100);
 
-  // 2. เช็คสถานะแต่ละโมดูลเพื่อเอาไปแสดงในการ์ด
+  // 2. เช็คสถานะแต่ละโมดูล (หาอันที่ "ใหม่ที่สุด" ของโมดูลนั้นๆ)
   const checkStatus = (moduleName) => {
-    // ค้นหาประวัติที่ชื่อโมดูลตรงกัน (เนื่องจากเรา reverse() ข้อมูลแล้ว มันจะเจอข้อมูล "ล่าสุด" ของโมดูลนั้นเสมอ)
+    // เนื่องจาก history เรียงจาก ใหม่ -> เก่า อยู่แล้ว 
+    // .find() จะเจอข้อมูลที่เพิ่งทำล่าสุดเป็นอันแรกเสมอ
     const record = history.find(item => item.module && item.module.includes(moduleName));
     if (record) return { status: 'สำเร็จ', score: record.detail, done: true };
     return { status: 'ยังไม่เริ่ม', score: '-', done: false };
@@ -51,7 +54,7 @@ export default function Dashboard({ user }) {
   return (
     <div className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto space-y-8 md:space-y-12 bg-slate-50 min-h-screen animate-fadeIn">
       
-      {/* Header: แสดงชื่อผู้ใช้จริง */}
+      {/* Header */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-2">
           <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">ภาพรวมการเรียนรู้</h2>
@@ -72,7 +75,7 @@ export default function Dashboard({ user }) {
         </div>
       </section>
 
-      {/* Progress Banner: คำนวณ % จริงจากฐานข้อมูล */}
+      {/* Progress Banner */}
       <section className="bg-white rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 md:gap-10 shadow-sm border border-slate-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
         
@@ -125,13 +128,12 @@ export default function Dashboard({ user }) {
               <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
                 <span className="material-symbols-outlined text-blue-400 text-2xl md:text-3xl">psychology</span>
               </div>
-              <h3 className="text-xl md:text-2xl font-bold tracking-tight">AI Intelligence Insight</h3>
+              <h3 className="text-xl md:text-2xl font-bold tracking-tight">AI Insight</h3>
             </div>
             <p className="text-slate-300 text-base md:text-lg leading-relaxed max-w-xl">
               {history.length > 0 
-                ? `เก่งมากครับคุณ ${user.name}! กิจกรรมล่าสุดของคุณคือการเรียนรู้ ${history[0].module} 
-                   ถ้าคุณทำข้อไหนยังได้คะแนนไม่เต็ม สามารถเข้าไปกดทำซ้ำเพื่ออัปเดตสถิติให้เป็น 100% ได้ตลอดเวลาเลยนะครับ สู้ๆ ✌️`
-                : "ยินดีต้อนรับสู่ห้องเรียนการเงิน! ผมคือ AI ผู้ช่วยของคุณ แนะนำให้คุณเริ่มจากการสร้างภูมิคุ้มกันใน โมดูลที่ 1 ก่อนเป็นอันดับแรกครับ"}
+                ? `ยินดีด้วยครับคุณ ${user.name}! กิจกรรมล่าสุดคือเรื่อง ${history[0].module} ข้อมูลนี้อัปเดตเรียบร้อยแล้ว หากคุณต้องการพัฒนาคะแนนเพิ่ม สามารถกลับไปเล่นซ้ำได้ตลอดเวลาครับ`
+                : "ยินดีต้อนรับ! ผมคือ AI ผู้ช่วย แนะนำให้คุณเริ่มจากการสร้างภูมิคุ้มกันในโมดูลที่ 1 ก่อนเป็นอันดับแรกครับ"}
             </p>
           </div>
           <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px]"></div>
@@ -142,13 +144,13 @@ export default function Dashboard({ user }) {
             <span className="material-symbols-outlined text-blue-600 font-bold">history</span>
             ความเคลื่อนไหวล่าสุด
           </h4>
-          <div className="space-y-6 flex-grow overflow-y-auto max-h-[300px] pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+          <div className="space-y-6 flex-grow overflow-y-auto max-h-[300px] pr-2">
             {history.length > 0 ? (
               history.slice(0, 5).map((item, idx) => (
                 <ActivityItem key={idx} time={item.date} title={item.module} detail={item.detail} />
               ))
             ) : (
-              <div className="text-center py-10 text-slate-400 italic text-sm">ยังไม่มีประวัติบันทึกไว้ในระบบ</div>
+              <div className="text-center py-10 text-slate-400 italic text-sm">ยังไม่มีประวัติบันทึก</div>
             )}
           </div>
         </div>
@@ -158,24 +160,22 @@ export default function Dashboard({ user }) {
 }
 
 // --- Sub-Components ---
-
 function ModuleCard({ title, desc, icon, data }) {
   const isDone = data.done;
   return (
-    <div className={`bg-white p-6 rounded-3xl shadow-sm border transition-all relative overflow-hidden flex flex-col h-full ${isDone ? 'border-green-100 hover:border-green-300' : 'border-slate-100 opacity-90'}`}>
+    <div className={`bg-white p-6 rounded-3xl shadow-sm border transition-all flex flex-col h-full ${isDone ? 'border-green-100' : 'border-slate-100'}`}>
       <div className="flex justify-between items-start mb-6">
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${isDone ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'}`}>
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDone ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'}`}>
           <span className="material-symbols-outlined text-2xl">{icon}</span>
         </div>
-        <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider ${isDone ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+        <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase ${isDone ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
           {data.status}
         </span>
       </div>
       <h4 className="font-black text-lg mb-2 text-slate-800">{title}</h4>
       <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed font-medium">{desc}</p>
-      
       <div className="flex flex-col gap-2 pt-4 border-t border-slate-50">
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">บันทึกสถิติล่าสุด</span>
+        <span className="text-[10px] font-black text-slate-400 uppercase">สถิติล่าสุด</span>
         <span className={`text-xs font-bold truncate ${isDone ? 'text-green-600' : 'text-slate-400'}`}>{data.score}</span>
       </div>
     </div>
@@ -186,11 +186,11 @@ function ActivityItem({ time, title, detail }) {
   return (
     <div className="flex gap-4 group">
       <div className="flex flex-col items-center">
-        <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm group-hover:scale-125 group-hover:bg-blue-600 transition-all"></div>
-        <div className="w-0.5 h-full bg-slate-100 my-1 group-hover:bg-blue-100 transition-colors"></div>
+        <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm group-hover:scale-125 transition-all"></div>
+        <div className="w-0.5 h-full bg-slate-100 my-1"></div>
       </div>
       <div className="pb-4">
-        <div className="text-[10px] text-slate-400 font-black uppercase mb-0.5 tracking-tighter">{time}</div>
+        <div className="text-[10px] text-slate-400 font-black mb-0.5 tracking-tighter">{time}</div>
         <div className="text-sm font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors">{title}</div>
         <div className="text-[11px] text-slate-500 mt-1 italic line-clamp-1">{detail}</div>
       </div>
