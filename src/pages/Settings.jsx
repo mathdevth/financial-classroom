@@ -8,7 +8,7 @@ export default function Settings({ user }) {
   const handleUpdate = async () => {
     setLoading(true);
     try {
-      await fetch("URL_SCRIPT_ของครู", {
+      await fetch("https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify({
