@@ -18,7 +18,10 @@ import AdminDashboard from './pages/AdminDashboard';
 export default function App() {
   const [activePage, setActivePage] = useState('dashboard');
   
-  // ✅ 1. ระบบเช็กความจำ (Remember Me): เช็กข้อมูลจาก localStorage ทันทีที่โหลดแอป
+  // ✅ 1. State สำหรับยอดผู้เข้าชม (Visitor Counter)
+  const [totalViews, setTotalViews] = useState(0);
+
+  // ✅ 2. ระบบเช็กความจำ (Remember Me)
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('financial_app_user');
@@ -31,18 +34,36 @@ export default function App() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // ✅ 2. ฟังก์ชันล็อกอิน: บันทึกทั้ง State และลงเครื่อง
+  // ⚠️ URL ของ Google Apps Script ของคุณครู
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
+
+  // ✅ 3. useEffect สำหรับนับยอดวิวทันทีที่เปิดแอป
+  useEffect(() => {
+    const fetchViews = async () => {
+      try {
+        // ยิงไปที่ Code.gs เพื่อบวกยอดวิวและรับยอดรวมกลับมา
+        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getViews`);
+        const result = await response.json();
+        if (result.status === "success") {
+          setTotalViews(result.totalViews);
+        }
+      } catch (error) {
+        console.error("Failed to fetch views:", error);
+      }
+    };
+    fetchViews();
+  }, []);
+
   const handleLogin = (userData) => {
     setUser(userData);
     localStorage.setItem('financial_app_user', JSON.stringify(userData));
   };
 
-  // ✅ 3. ฟังก์ชันออกจากระบบ: ล้างค่าทั้ง State และในเครื่อง
   const handleLogout = () => {
     if (window.confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
       setUser(null);
       localStorage.removeItem('financial_app_user');
-      setActivePage('dashboard'); // รีเซ็ตหน้ากลับไปที่หน้าแรก
+      setActivePage('dashboard');
     }
   };
 
@@ -64,7 +85,6 @@ export default function App() {
     }
   };
 
-  // ถ้ายังไม่ได้ล็อกอิน ให้ไปหน้า Login โดยส่ง handleLogin ไปแทน setUser
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
@@ -72,7 +92,6 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 font-sans relative">
       
-      {/* 🌑 พื้นหลัง Overlay สำหรับมือถือ */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
@@ -80,19 +99,17 @@ export default function App() {
         ></div>
       )}
 
-      {/* 🖥️ Sidebar Area */}
       <div className={`fixed inset-y-0 left-0 z-50 transform lg:transform-none lg:static transition-transform duration-300 ease-in-out ${
         isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <Sidebar 
           activePage={activePage} 
           setActivePage={handlePageChange} 
-          onLogout={handleLogout} // ✅ ใช้ handleLogout ที่ล้างข้อมูลในเครื่องด้วย
+          onLogout={handleLogout} 
           user={user} 
         />
       </div>
 
-      {/* 📺 Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
         
         <Navbar 
@@ -103,7 +120,8 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto">
           {renderContent()}
-          <Footer />
+          {/* ✅ 4. ส่งค่า totalViews ไปแสดงที่ Footer */}
+          <Footer totalViews={totalViews} /> 
         </main>
       </div>
       
