@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 
 export default function Module2TaxSimulator({ user }) {
   const [activeTab, setActiveTab] = useState('income');
@@ -95,13 +96,20 @@ export default function Module2TaxSimulator({ user }) {
         body: JSON.stringify({
           action: "save", userId: user.id,
           moduleName: "Module 2: Full Tax",
-          actionData: `รายได้: ฿${result.totalIncome.toLocaleString()} | ภาษี: ฿${result.taxToPay.toLocaleString()}`
+          actionData: `รายได้สุทธิ: ฿${result.netIncome.toLocaleString()} | ภาษี: ฿${result.taxToPay.toLocaleString()}`
         })
       });
       setSubmitStatus('บันทึกสำเร็จ ✅');
+      setTimeout(() => setSubmitStatus(''), 3000);
     } catch (e) { setSubmitStatus('ผิดพลาด ❌'); }
     setIsSubmitting(false);
   };
+
+  // เตรียมข้อมูลสำหรับ Donut Chart
+  const taxData = result.isCalculated ? [
+    { name: 'เงินออม/สุทธิ', value: result.netIncome, color: '#10b981' }, // เขียว
+    { name: 'ภาษีที่จ่าย', value: result.taxToPay, color: '#ef4444' }     // แดง
+  ] : [];
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 bg-slate-50 min-h-screen font-sans">
@@ -142,13 +150,13 @@ export default function Module2TaxSimulator({ user }) {
       {/* Tab Content: Deduction */}
       {activeTab === 'deduction' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fadeIn">
-          {/* กลุ่ม 1: ครอบครัว (จุดที่แก้ไข) */}
+          {/* กลุ่ม 1: ครอบครัว */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
             <h4 className="font-black text-blue-600 border-b pb-2">กลุ่ม 1: ครอบครัว</h4>
             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-slate-700">คู่สมรส (ไม่มีรายได้)</span>
-                {deductions.spouse && <span className="text-[10px] text-blue-500 font-bold animate-fadeIn">= 60,000 ฿</span>}
+                {deductions.spouse && <span className="text-[10px] text-blue-500 font-bold animate-fadeIn">= 60,000 บาทต่อปี</span>}
               </div>
               <input type="checkbox" checked={deductions.spouse} onChange={(e)=>setDeductions({...deductions, spouse: e.target.checked})} className="w-6 h-6 accent-blue-600 cursor-pointer" />
             </div>
@@ -158,6 +166,7 @@ export default function Module2TaxSimulator({ user }) {
             <Input label="ลูก (คนที่ 2+ เกิดหลัง 2561)" value={deductions.childrenNew} onChange={(v)=>setDeductions({...deductions, childrenNew: v})} multiplier={60000} />
           </div>
 
+          {/* กลุ่ม 2: ประกัน & ออม */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
             <h4 className="font-black text-green-600 border-b pb-2">กลุ่ม 2: ประกัน & ออม</h4>
             <Input label="ประกันชีวิต/สุขภาพ" value={deductions.lifeInsurance} onChange={(v)=>setDeductions({...deductions, lifeInsurance: v})} />
@@ -165,6 +174,7 @@ export default function Module2TaxSimulator({ user }) {
             <Input label="กองทุน RMF / SSF" value={deductions.rmf} onChange={(v)=>setDeductions({...deductions, rmf: v, ssf: v})} />
           </div>
 
+          {/* กลุ่ม 3-4: บริจาค & อสังหาฯ */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
             <h4 className="font-black text-orange-600 border-b pb-2">กลุ่ม 3-4: บริจาค & อสังหาฯ</h4>
             <Input label="ดอกเบี้ยบ้าน" value={deductions.homeLoanInterest} onChange={(v)=>setDeductions({...deductions, homeLoanInterest: v})} />
@@ -175,9 +185,10 @@ export default function Module2TaxSimulator({ user }) {
         </div>
       )}
 
-      {/* Tab Content: Summary (คงเดิม) */}
+      {/* Tab Content: Summary */}
       {activeTab === 'summary' && result.isCalculated && (
         <div className="space-y-6 animate-fadeIn">
+          
           <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
               <div className="text-center md:text-left">
@@ -185,7 +196,7 @@ export default function Module2TaxSimulator({ user }) {
                 <h2 className="text-6xl md:text-7xl font-black tracking-tighter">฿{result.taxToPay.toLocaleString(undefined, {minimumFractionDigits: 2})}</h2>
               </div>
               <button onClick={saveToSheets} disabled={isSubmitting} className="px-10 py-5 bg-blue-600 rounded-2xl font-black hover:bg-blue-500 transition-all shadow-xl flex items-center gap-3 active:scale-95">
-                <span className="material-symbols-outlined">save</span>
+                <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'save'}</span>
                 {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกประวัติ'}
               </button>
             </div>
@@ -196,6 +207,71 @@ export default function Module2TaxSimulator({ user }) {
             <SummaryCard label="รวมรายได้" value={result.totalIncome} color="slate" />
             <SummaryCard label="หักค่าใช้จ่าย (Auto)" value={result.totalExpense} color="red" />
             <SummaryCard label="หักค่าลดหย่อน" value={result.totalDeduction} color="orange" />
+          </div>
+
+          {/* ส่วนแสดงผล Donut Chart */}
+          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+            <div className="flex-grow w-full space-y-6 relative z-10">
+              <h4 className="font-black text-slate-800 text-lg flex items-center gap-2 border-b pb-4">
+                <span className="material-symbols-outlined text-green-500">donut_large</span>
+                สัดส่วน: เงินออม vs ภาษี
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+                  <p className="text-[10px] text-green-700 font-black uppercase mb-1">เงินได้สุทธิ (ออม)</p>
+                  <h3 className="text-xl font-black text-green-600">
+                    ฿{result.netIncome.toLocaleString()}
+                  </h3>
+                  <p className="text-xs font-bold text-green-500 mt-1">({Math.round((result.netIncome / result.totalIncome) * 100)}%)</p>
+                </div>
+                <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                  <p className="text-[10px] text-red-700 font-black uppercase mb-1">ภาษีที่จ่าย</p>
+                  <h3 className="text-xl font-black text-red-600">
+                    ฿{result.taxToPay.toLocaleString()}
+                  </h3>
+                  <p className="text-xs font-bold text-red-500 mt-1">({Math.round((result.taxToPay / result.totalIncome) * 100)}%)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full md:w-1/2 h-[300px] md:h-[350px] shrink-0 relative z-10">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={taxData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {taxData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Legend verticalAlign="bottom" height={36} content={({ payload }) => (
+                    <div className="flex justify-center gap-4 text-[11px] font-black uppercase text-slate-500 tracking-widest pt-2">
+                      {payload.map((entry, index) => (
+                        <div key={`legend-${index}`} className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                          <span>{entry.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">เงินได้สุทธิรายปี</p>
+                <h3 className="text-2xl font-black text-green-600 tracking-tighter">
+                  ฿{result.netIncome.toLocaleString()}
+                </h3>
+              </div>
+            </div>
+            <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-green-500/5 rounded-full blur-[100px]"></div>
           </div>
 
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
@@ -230,25 +306,29 @@ export default function Module2TaxSimulator({ user }) {
   );
 }
 
-// --- Component ย่อยสำหรับ Input ที่เพิ่มฟีเจอร์ Multiplier ---
+// --- Component ย่อยสำหรับ Input ที่มี "บาท/ปี" และ "คน" ฝังอยู่ ---
 function Input({ label, value, onChange, multiplier = 1 }) {
   const displayAmount = value * multiplier;
+  const isPerson = multiplier > 1; // เช็กว่าเป็นจำนวนคนหรือไม่
 
   return (
     <div className="space-y-1">
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
-      <div className="relative">
+      <label className="text-[11px] font-black text-slate-600 tracking-wide ml-1">{label}</label>
+      <div className="relative flex items-center">
         <input 
           type="text" 
           value={value === 0 ? '' : value} 
           onChange={(e) => onChange(Number(e.target.value.replace(/[^0-9]/g, '')))}
-          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-black text-slate-700 transition-all"
+          className="w-full pl-4 pr-16 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-black text-slate-700 transition-all shadow-inner"
           placeholder="0"
         />
+        <span className="absolute right-4 text-[10px] font-black text-slate-300 uppercase tracking-widest select-none">
+          {isPerson ? "คน" : "บาท/ปี"}
+        </span>
       </div>
       {value > 0 && (
-        <p className="text-[10px] text-blue-500 font-bold text-right pr-1 animate-fadeIn">
-          {multiplier > 1 ? `(${value.toLocaleString()} คน) ` : ""}= {displayAmount.toLocaleString()} ฿
+        <p className="text-[10px] text-blue-600 font-black text-right pr-1 animate-fadeIn">
+          {isPerson ? `(${value.toLocaleString()} คน) ` : ""}= {displayAmount.toLocaleString()} บาทต่อปี
         </p>
       )}
     </div>

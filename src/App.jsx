@@ -6,7 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
 // 2. นำเข้า Components ส่วนเนื้อหา (Pages)
-import Login from './pages/Login'; // <--- นี่คือตัวละครใหม่ที่เพิ่มเข้ามาครับ!
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Module1ScamAwareness from './pages/Module1';
 import Module2TaxSimulator from './pages/Module2';
@@ -16,11 +16,17 @@ import Module5LifePlanner from './pages/Module5';
 
 export default function App() {
   const [activePage, setActivePage] = useState('dashboard');
+  const [user, setUser] = useState(null);
   
-  // State สำหรับเก็บข้อมูลนักเรียน (ถ้าเป็น null แปลว่ายังไม่ได้ล็อกอิน)
-  const [user, setUser] = useState(null); // <--- เพิ่มตัวแปรนี้เข้ามาครับ
+  // 📱 State ใหม่: สำหรับคุมการเปิด/ปิดแถบเมนูด้านซ้ายในมือถือ
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // ฟังก์ชันสลับหน้าจอตามเมนูที่กด (ส่ง user ไปให้แต่ละโมดูลด้วย)
+  // ฟังก์ชันเปลี่ยนหน้า: เปลี่ยนหน้าเสร็จปุ๊บ ให้ปิดเมนูมือถือปั๊บ
+  const handlePageChange = (pageId) => {
+    setActivePage(pageId);
+    setIsMobileMenuOpen(false); 
+  };
+
   const renderContent = () => {
     switch (activePage) {
       case 'dashboard': return <Dashboard user={user} />;
@@ -33,25 +39,41 @@ export default function App() {
     }
   };
 
-  // ดักเอาไว้เลย! ถ้ายังไม่มีข้อมูล user ให้โชว์หน้า Login เท่านั้น
   if (!user) {
-    return <Login onLogin={setUser} />; // <--- นี่คือจุดที่ทำให้หน้า Login โผล่มาครับ
+    return <Login onLogin={setUser} />;
   }
 
-  // ถ้า Login แล้ว ถึงจะแสดงหน้าตาแอปปกติ
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 font-sans">
+    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 font-sans relative">
       
-      {/* แถบเมนูด้านซ้าย (ส่งคำสั่ง Logout ไปให้เมนูด้วย) */}
-      <Sidebar 
-        activePage={activePage} 
-        setActivePage={setActivePage} 
-        onLogout={() => setUser(null)} 
-      />
+      {/* 🌑 พื้นหลังสีดำจางๆ (Overlay) แสดงเฉพาะในมือถือตอนเปิดเมนู */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        ></div>
+      )}
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* แถบด้านบน (ส่งชื่อ user ไปโชว์ที่มุมขวาบน) */}
-        <Navbar activePage={activePage} user={user} />
+      {/* 🖥️ พื้นที่ Sidebar (ทำ Slide Animation สำหรับมือถือ) */}
+      <div className={`fixed inset-y-0 left-0 z-50 transform lg:transform-none lg:static transition-transform duration-300 ease-in-out ${
+        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <Sidebar 
+          activePage={activePage} 
+          setActivePage={handlePageChange} // ใช้ฟังก์ชันใหม่ที่สร้างไว้
+          onLogout={() => setUser(null)} 
+        />
+      </div>
+
+      {/* 📺 พื้นที่แสดงผลเนื้อหา (Main Content) */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
+        
+        {/* ส่งฟังก์ชัน toggleMenu ไปให้ Navbar เพื่อทำปุ่มแฮมเบอร์เกอร์ */}
+        <Navbar 
+          activePage={activePage} 
+          user={user} 
+          toggleMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+        />
 
         <main className="flex-1 overflow-y-auto">
           {renderContent()}
