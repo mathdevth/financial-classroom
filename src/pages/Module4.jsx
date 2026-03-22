@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // ✅ เพิ่ม useCallback
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label } from 'recharts';
 
 export default function Module4RetirementPlanner({ user }) {
@@ -24,36 +24,14 @@ export default function Module4RetirementPlanner({ user }) {
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ✅ 1. ระบบดึงข้อมูลเก่า (Smart Load)
-  useEffect(() => {
-    const loadOldData = async () => {
-      try {
-        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getLatestRecord&userId=${user.id}&moduleName=Module 4: วางแผนเกษียณ`);
-        const result = await response.json();
-        if (result.status === "success" && result.rawData) {
-          const oldData = JSON.parse(result.rawData);
-          setPlanInputs(oldData); 
-          console.log("โหลดแผนเกษียณเก่าเรียบร้อย!");
-        }
-      } catch (e) { console.log("ยังไม่มีแผนเกษียณเก่า"); }
-    };
-    loadOldData();
-  }, [user.id]);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const sanitizedValue = value.replace(/[^0-9.]/g, '');
-    setPlanInputs({ ...planInputs, [name]: Number(sanitizedValue) });
-  };
-
-  // ✅ 2. ลอจิกการคำนวณ
-  const calculateRetirement = () => {
-    const { currentAge, retireAge, lifeExpectancy, monthlyExpense, returnRate } = planInputs;
+  // ✅ 1. ลอจิกการคำนวณ (หุ้มด้วย useCallback เพื่อให้เรียกใช้ตอนโหลดข้อมูลได้)
+  const calculateRetirement = useCallback((inputs = planInputs) => {
+    const { currentAge, retireAge, lifeExpectancy, monthlyExpense, returnRate } = inputs;
     const yearsToSave = retireAge - currentAge;
     const yearsInRetirement = lifeExpectancy - retireAge;
 
     if (yearsToSave <= 0 || yearsInRetirement <= 0) {
-      alert("ตรวจสอบข้อมูล: อายุปัจจุบันต้องน้อยกว่าอายุเกษียณ และอายุเกษียณต้องน้อยกว่าอายุขัย");
+      if (result.isCalculated) alert("ตรวจสอบข้อมูล: อายุปัจจุบันต้องน้อยกว่าอายุเกษียณ และอายุเกษียณต้องน้อยกว่าอายุขัย");
       return;
     }
 
@@ -68,11 +46,13 @@ export default function Module4RetirementPlanner({ user }) {
     const yearlySaving = monthlySaving * 12;
     const yearlyExpense = monthlyExpense * 12;
 
+    // Phase 1: สะสมเงิน
     for (let age = currentAge; age <= retireAge; age++) {
       projection.push({ age, fund: Math.round(currentBalance), phase: 'สะสมเงิน' });
       currentBalance = (currentBalance + yearlySaving) * (1 + r);
     }
 
+    // Phase 2: ใช้เงิน
     for (let age = retireAge + 1; age <= lifeExpectancy; age++) {
       currentBalance = (currentBalance - yearlyExpense) * (1 + r);
       if (currentBalance < 0) currentBalance = 0;
@@ -85,6 +65,35 @@ export default function Module4RetirementPlanner({ user }) {
       monthlySavingNeeded: monthlySaving,
       isCalculated: true
     });
+  }, [planInputs, result.isCalculated]);
+
+  // ✅ 2. 🤖 ระบบ Smart Load (ปรับปรุงเพื่อความแม่นยำ)
+  useEffect(() => {
+    const loadOldData = async () => {
+      if (!user?.id) return;
+      try {
+        // เติม &t= เพื่อป้องกัน Cache และ encodeURIComponent ป้องกันชื่อโมดูลภาษาไทยเพี้ยน
+        const url = `${GOOGLE_SCRIPT_URL}?action=getLatestRecord&userId=${user.id}&moduleName=${encodeURIComponent("Module 4: วางแผนเกษียณ")}&t=${Date.now()}`;
+        const response = await fetch(url);
+        const resJson = await response.json();
+        
+        if (resJson.status === "success" && resJson.rawData) {
+          const oldData = JSON.parse(resJson.rawData);
+          setPlanInputs(oldData); 
+          
+          // ✅ สั่งคำนวณทันทีหลังโหลดข้อมูลสำเร็จ
+          calculateRetirement(oldData);
+          console.log("โหลดแผนเกษียณเดิมเรียบร้อย!");
+        }
+      } catch (e) { console.log("ยังไม่มีแผนเกษียณเก่า"); }
+    };
+    loadOldData();
+  }, [user.id, calculateRetirement]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    const sanitizedValue = value.replace(/[^0-9.]/g, '');
+    setPlanInputs({ ...planInputs, [name]: Number(sanitizedValue) });
   };
 
   const saveToGoogleSheets = async () => {
@@ -104,21 +113,16 @@ export default function Module4RetirementPlanner({ user }) {
     finally { setIsSubmitting(false); }
   };
 
-  // ✅ 3. ส่วนแสดงสูตรแบบ Visual HTML (แก้ปัญหา Build Error และแสดงผลสวยงาม)
   const renderLogic = () => (
     <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 space-y-6 animate-fadeIn">
       <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest text-center">Logic: ที่มาของตัวเลขแผนเกษียณ</p>
-      
       <div className="space-y-6">
-        {/* สูตรที่ 1 */}
         <div className="flex flex-col items-center">
           <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">1. หาเป้าหมายเงินก้อน (Fund)</p>
           <div className="text-lg font-serif italic text-slate-800 bg-white px-4 py-2 rounded-xl shadow-sm border border-orange-100">
             Fund = Expense × 12 × Years
           </div>
         </div>
-
-        {/* สูตรที่ 2 แบบเศษส่วน */}
         <div className="flex flex-col items-center">
           <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">2. คำนวณเงินออมต่องวด (PMT)</p>
           <div className="flex items-center text-xl font-serif italic text-slate-800 bg-white px-6 py-4 rounded-2xl shadow-sm border border-orange-100">
@@ -130,18 +134,11 @@ export default function Module4RetirementPlanner({ user }) {
           </div>
         </div>
       </div>
-
-      <div className="pt-4 border-t border-orange-200/50">
-         <p className="text-[10px] text-slate-500 italic leading-relaxed text-center">
-           * i = ดอกเบี้ยต่องวด | n = จำนวนงวดทั้งหมด (ปี × 12)<br/>
-           ** เป็นการคำนวณเบื้องต้นเพื่อสร้างเป้าหมายในอนาคต
-         </p>
-      </div>
     </div>
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans animate-fadeIn">
       <section className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
         <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center text-4xl shadow-inner shrink-0 animate-pulse">🏖️</div>
         <div>
@@ -163,7 +160,7 @@ export default function Module4RetirementPlanner({ user }) {
 
             {renderLogic()}
 
-            <button onClick={calculateRetirement} className="w-full py-5 bg-orange-500 text-white font-black rounded-3xl shadow-xl hover:bg-orange-600 active:scale-95 transition-all text-lg">
+            <button onClick={() => calculateRetirement()} className="w-full py-5 bg-orange-500 text-white font-black rounded-3xl shadow-xl hover:bg-orange-600 active:scale-95 transition-all text-lg">
               วิเคราะห์ภูเขาเงินออม
             </button>
           </div>
@@ -185,7 +182,6 @@ export default function Module4RetirementPlanner({ user }) {
               </div>
 
               <div className="flex-grow w-full h-[350px]">
-                <p className="text-xs font-black text-slate-400 mb-6 uppercase tracking-widest text-center italic">Retirement Mountain Profile</p>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <defs>
@@ -206,13 +202,13 @@ export default function Module4RetirementPlanner({ user }) {
                 </ResponsiveContainer>
               </div>
 
-              <button onClick={saveToGoogleSheets} disabled={isSubmitting} className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-black transition-all flex items-center justify-center gap-2">
+              <button onClick={saveToGoogleSheets} disabled={isSubmitting} className="w-full py-4 bg-slate-100 hover:bg-orange-50 text-slate-700 font-black rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95">
                 <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'save_as'}</span>
                 {submitStatus || 'บันทึกแผนเกษียณล่าสุด'}
               </button>
             </div>
           ) : (
-            <div className="h-full bg-slate-100 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center font-bold">
+            <div className="h-full bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center font-bold">
               <span className="material-symbols-outlined text-7xl mb-4 opacity-20">landscape</span>
               <p>กรอกข้อมูลและกดปุ่มวิเคราะห์ <br/>เพื่อดูภาพรวม "ภูเขาเงินออม" ของคุณ</p>
             </div>

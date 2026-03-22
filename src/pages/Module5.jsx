@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // ✅ เพิ่ม useCallback
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function Module5LifePlanner({ user }) {
@@ -22,55 +22,29 @@ export default function Module5LifePlanner({ user }) {
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ✅ 1. ระบบดึงข้อมูลแผนล่าสุด (Smart Load)
-  useEffect(() => {
-    const loadOldData = async () => {
-      try {
-        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getLatestRecord&userId=${user.id}&moduleName=Module 5: Life Planner`);
-        const result = await response.json();
-        if (result.status === "success" && result.rawData) {
-          const oldData = JSON.parse(result.rawData);
-          if (oldData.inputs) setInputs(oldData.inputs);
-          if (oldData.allocations) setAllocations(oldData.allocations);
-          console.log("โหลดแผนชีวิตเก่าเรียบร้อย!");
-        }
-      } catch (e) { console.log("ยังไม่มีแผนเดิม"); }
-    };
-    loadOldData();
-  }, [user.id]);
-
-  const handleInputChange = (e) => {
-    const value = e.target.value.replace(/[^0-9.]/g, '');
-    setInputs({ ...inputs, [e.target.name]: Number(value) });
-  };
-
-  const handleAllocationChange = (e) => {
-    setAllocations({ ...allocations, [e.target.name]: Number(e.target.value) });
-  };
-
-  // ✅ 2. ลอจิกการคำนวณจำลองอนาคต
-  const calculateProjection = () => {
-    const totalAllocation = allocations.emergency + allocations.happiness + allocations.wealth;
+  // ✅ 1. ลอจิกการคำนวณ (หุ้มด้วย useCallback เพื่อให้เรียกใช้ตอนโหลดข้อมูลได้)
+  const calculateProjection = useCallback((currentInputs = inputs, currentAlloc = allocations) => {
+    const totalAllocation = currentAlloc.emergency + currentAlloc.happiness + currentAlloc.wealth;
     if (totalAllocation !== 100) {
-      alert(`สัดส่วนรวมต้องได้ 100% (ตอนนี้คือ ${totalAllocation}%)`);
+      if (isCalculated) alert(`สัดส่วนรวมต้องได้ 100% (ตอนนี้คือ ${totalAllocation}%)`);
       return;
     }
 
     let data = [];
-    let currentSalary = inputs.startingSalary;
+    let currentSalary = currentInputs.startingSalary;
     let totalE = 0; let totalH = 0; let totalW = 0;
     
     const rateE = 0.02; // กองทุนฉุกเฉิน 2%
     const rateW = 0.08; // กองทุนมั่งคั่ง 8%
 
-    for (let year = 1; year <= inputs.yearsToSimulate; year++) {
-      let monthlyRem = currentSalary - inputs.monthlyExpense;
+    for (let year = 1; year <= currentInputs.yearsToSimulate; year++) {
+      let monthlyRem = currentSalary - currentInputs.monthlyExpense;
       if (monthlyRem < 0) monthlyRem = 0;
       let yearlyRem = monthlyRem * 12;
 
-      let cE = yearlyRem * (allocations.emergency / 100);
-      let cH = yearlyRem * (allocations.happiness / 100);
-      let cW = yearlyRem * (allocations.wealth / 100);
+      let cE = yearlyRem * (currentAlloc.emergency / 100);
+      let cH = yearlyRem * (currentAlloc.happiness / 100);
+      let cW = yearlyRem * (currentAlloc.wealth / 100);
 
       let iE = (totalE + cE) * rateE;
       let iW = (totalW + cW) * rateW;
@@ -81,20 +55,50 @@ export default function Module5LifePlanner({ user }) {
       
       data.push({
         year: `ปีที่ ${year}`,
-        salary: Math.round(currentSalary),
-        remaining: Math.round(monthlyRem),
         "กองทุนฉุกเฉิน": Math.round(totalE),
         "กองทุนความสุข": Math.round(totalH),
         "กองทุนมั่งคั่ง": Math.round(totalW),
-        totalWealth: Math.round(totalE + totalH + totalW),
-        yearInt: Math.round(iE + iW)
+        totalWealth: Math.round(totalE + totalH + totalW)
       });
 
-      currentSalary *= (1 + (inputs.salaryIncrease / 100));
+      currentSalary *= (1 + (currentInputs.salaryIncrease / 100));
     }
 
     setProjectionData(data);
     setIsCalculated(true);
+  }, [inputs, allocations, isCalculated]);
+
+  // ✅ 2. 🤖 ระบบ Smart Load (ป้องกัน Cache และชื่อภาษาไทย)
+  useEffect(() => {
+    const loadOldData = async () => {
+      if (!user?.id) return;
+      try {
+        // เติม &t= ป้องกัน Cache และ encodeURIComponent ป้องกันชื่อโมดูลเพี้ยน
+        const url = `${GOOGLE_SCRIPT_URL}?action=getLatestRecord&userId=${user.id}&moduleName=${encodeURIComponent("Module 5: Life Planner")}&t=${Date.now()}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.status === "success" && result.rawData) {
+          const oldData = JSON.parse(result.rawData);
+          if (oldData.inputs) setInputs(oldData.inputs);
+          if (oldData.allocations) setAllocations(oldData.allocations);
+          
+          // ✅ สั่งคำนวณและโชว์กราฟทันทีหลังโหลดข้อมูลสำเร็จ
+          calculateProjection(oldData.inputs, oldData.allocations);
+          console.log("โหลดแผนชีวิตเดิมเรียบร้อย!");
+        }
+      } catch (e) { console.log("ยังไม่มีแผนเดิม"); }
+    };
+    loadOldData();
+  }, [user.id, calculateProjection]);
+
+  const handleInputChange = (e) => {
+    const value = e.target.value.replace(/[^0-9.]/g, '');
+    setInputs({ ...inputs, [e.target.name]: Number(value) });
+  };
+
+  const handleAllocationChange = (e) => {
+    setAllocations({ ...allocations, [e.target.name]: Number(e.target.value) });
   };
 
   const saveToGoogleSheets = async () => {
@@ -114,16 +118,14 @@ export default function Module5LifePlanner({ user }) {
     finally { setIsSubmitting(false); }
   };
 
-  // ✅ 3. ส่วนแสดงตรรกะการเติบโต (แก้บัค Unicode Escape)
   const renderLogicCard = () => (
     <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-4 text-sm">
       <p className="font-black text-blue-600 uppercase tracking-widest text-[10px]">Financial Engine Logic</p>
       <div className="space-y-2 text-slate-600 font-medium">
-        <p>1. <b>รายได้</b> เพิ่มตามอัตราเงินเดือนขึ้น</p>
-        <p>2. <b>เงินออม</b> = รายได้ - รายจ่ายประจำ</p>
-        <p>3. <b>ดอกเบี้ยทบต้น</b>: ฉุกเฉิน 2%, ลงทุน 8%</p>
+        <p>1. <b>รายได้</b> เพิ่มตามอัตราเงินเดือนขึ้นรายปี</p>
+        <p>2. <b>เงินออม</b> = รายได้ - รายจ่ายประจำ (ออม 100% ของส่วนเหลือ)</p>
+        <p>3. <b>การเติบโต</b>: ฉุกเฉินโต 2%, มั่งคั่งโต 8% ต่อปี (ทบต้น)</p>
         <div className="pt-2 border-t border-blue-200">
-           {/* ✅ ใช้สูตรแบบ String Literal เพื่อความปลอดภัยตอน Build */}
            <p className="text-center font-serif italic py-1 text-slate-800">
              {'W_next = (W_now + Savings) × (1 + r)'}
            </p>
@@ -133,7 +135,7 @@ export default function Module5LifePlanner({ user }) {
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans animate-fadeIn">
       
       <section className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl flex items-center gap-6 relative overflow-hidden border border-slate-800">
         <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-[80px]"></div>
@@ -160,7 +162,7 @@ export default function Module5LifePlanner({ user }) {
             <div className="pt-4 border-t border-slate-50 space-y-5">
               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">สัดส่วนการกระจายเงินเก็บ</h4>
               <Slider label="กองทุนฉุกเฉิน (2%)" name="emergency" value={allocations.emergency} onChange={handleAllocationChange} color="blue" />
-              <Slider label="กองทุนความสุข (0%)" name="happiness" value={allocations.happiness} onChange={handleAllocationChange} color="orange" />
+              <Slider label="กองทุนความสุข (ใช้สอย)" name="happiness" value={allocations.happiness} onChange={handleAllocationChange} color="orange" />
               <Slider label="กองทุนมั่งคั่ง (8%)" name="wealth" value={allocations.wealth} onChange={handleAllocationChange} color="green" />
               <div className={`text-center p-3 rounded-2xl text-xs font-black transition-all ${allocations.emergency + allocations.happiness + allocations.wealth === 100 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                 รวม: {allocations.emergency + allocations.happiness + allocations.wealth}% {allocations.emergency + allocations.happiness + allocations.wealth !== 100 && '(ต้องครบ 100%)'}
@@ -169,7 +171,7 @@ export default function Module5LifePlanner({ user }) {
 
             {renderLogicCard()}
 
-            <button onClick={calculateProjection} className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all text-lg">
+            <button onClick={() => calculateProjection()} className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all text-lg">
               รันผลจำลองอนาคต
             </button>
           </div>
@@ -182,8 +184,8 @@ export default function Module5LifePlanner({ user }) {
                 <div className="flex justify-between items-center mb-8 relative z-10">
                   <h4 className="font-black text-slate-800">Wealth Stacked Area Chart</h4>
                   <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">เป้าหมายปีสุดท้าย</p>
-                    <p className="text-3xl font-black text-indigo-600">฿{projectionData[projectionData.length-1].totalWealth.toLocaleString()}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">เป้าหมายปีที่ {inputs.yearsToSimulate}</p>
+                    <p className="text-3xl font-black text-indigo-600">฿{projectionData.length > 0 ? projectionData[projectionData.length-1].totalWealth.toLocaleString() : 0}</p>
                   </div>
                 </div>
 
@@ -209,23 +211,20 @@ export default function Module5LifePlanner({ user }) {
               </div>
 
               <div className="bg-slate-900 text-white p-8 rounded-3xl flex justify-between items-center shadow-2xl border border-slate-800">
-                <div>
+                <div className="flex-1">
                   <p className="text-indigo-400 font-black text-xs uppercase tracking-widest mb-1">Success Projection</p>
-                  <p className="text-sm font-bold text-slate-300">ความมั่งคั่งรวม ฿{projectionData[projectionData.length-1].totalWealth.toLocaleString()} ในอีก {inputs.yearsToSimulate} ปี</p>
+                  <p className="text-sm font-bold text-slate-300">ความมั่งคั่งรวม ฿{projectionData.length > 0 ? projectionData[projectionData.length-1].totalWealth.toLocaleString() : 0} ในอีก {inputs.yearsToSimulate} ปี</p>
                 </div>
-                <button onClick={saveToGoogleSheets} disabled={isSubmitting} className="px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-black rounded-2xl transition-all flex items-center gap-2 active:scale-95 shadow-lg">
+                <button onClick={saveToGoogleSheets} disabled={isSubmitting} className="px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-black rounded-2xl transition-all flex items-center gap-2 active:scale-95 shadow-lg shrink-0">
                   <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'cloud_done'}</span>
                   {submitStatus || 'บันทึกแผนล่าสุด'}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="h-full bg-slate-100 rounded-[3.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center">
+            <div className="h-full bg-slate-100 rounded-[3.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center font-bold">
               <span className="material-symbols-outlined text-8xl mb-6 opacity-20">insights</span>
-              <h4 className="text-2xl font-black text-slate-600 mb-2">มองเห็นอนาคตผ่านตัวเลข</h4>
-              <p className="max-w-xs text-sm font-medium leading-relaxed">
-                การออมที่มีวินัยบวกกับพลังของเวลาจะสร้างปาฏิหาริย์ให้การเงินของคุณ <br/>ลองปรับสัดส่วนแล้วกดรันผลดูครับ
-              </p>
+              <p>กรอกข้อมูลตัวแปรชีวิต <br/>เพื่อจำลองเส้นทางการเงินในอนาคต</p>
             </div>
           )}
         </div>
@@ -234,7 +233,7 @@ export default function Module5LifePlanner({ user }) {
   );
 }
 
-// Sub-Components (คงเดิมตามแนวทางที่สวยงาม)
+// Sub-Components
 function InputField({ label, name, value, onChange }) {
   return (
     <div className="space-y-1">
