@@ -14,14 +14,15 @@ import Module3TVMCalculator from './pages/Module3';
 import Module4RetirementPlanner from './pages/Module4';
 import Module5LifePlanner from './pages/Module5';
 import AdminDashboard from './pages/AdminDashboard';
+import Settings from './pages/Settings'; // ✅ เพิ่มหน้าตั้งค่า
 
 export default function App() {
   const [activePage, setActivePage] = useState('dashboard');
   
-  // ✅ 1. State สำหรับยอดผู้เข้าชม (Visitor Counter)
+  // ✅ 1. State สำหรับยอดผู้เข้าชม
   const [totalViews, setTotalViews] = useState(0);
 
-  // ✅ 2. ระบบเช็กความจำ (Remember Me)
+  // ✅ 2. ระบบเช็กความจำผู้ใช้งาน
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('financial_app_user');
@@ -37,7 +38,7 @@ export default function App() {
   // ⚠️ URL ของ Google Apps Script ของคุณครู
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ✅ 3. useEffect สำหรับนับยอดวิวทันทีที่เปิดแอป
+  // ✅ 3. นับยอดวิวทันทีที่เปิดแอป
   useEffect(() => {
     const fetchViews = async () => {
       try {
@@ -66,25 +67,24 @@ export default function App() {
     }
   };
 
-  // ✅ ฟังก์ชันเปลี่ยนหน้า (ใช้ทั้งใน Sidebar และส่งต่อให้ Dashboard)
   const handlePageChange = (pageId) => {
     setActivePage(pageId);
     setIsMobileMenuOpen(false); 
-    // สั่งให้เลื่อนขึ้นบนสุดอัตโนมัติเมื่อเปลี่ยนหน้า
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ✅ 4. ปรับปรุงการ Render เพื่อส่ง setActivePage ให้ Dashboard
+  // ✅ 4. เพิ่ม Case 'settings' ในการ Render
   const renderContent = () => {
     switch (activePage) {
       case 'dashboard': 
-        return <Dashboard user={user} setActivePage={handlePageChange} />; // 🚀 ส่งฟังก์ชันวาร์ปไปที่นี่
+        return <Dashboard user={user} setActivePage={handlePageChange} />;
       case 'module1': return <Module1ScamAwareness user={user} />;
       case 'module2': return <Module2TaxSimulator user={user} />;
       case 'module3': return <Module3TVMCalculator user={user} />;
       case 'module4': return <Module4RetirementPlanner user={user} />;
       case 'module5': return <Module5LifePlanner user={user} />;
       case 'admin': return <AdminDashboard user={user} />;
+      case 'settings': return <Settings user={user} />; // 🚀 หน้าแก้โปรไฟล์
       default: return <Dashboard user={user} setActivePage={handlePageChange} />;
     }
   };
@@ -96,7 +96,7 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 font-sans relative">
       
-      {/* Backdrop สำหรับ Mobile Menu */}
+      {/* Backdrop สำหรับ Mobile */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
@@ -104,7 +104,7 @@ export default function App() {
         ></div>
       )}
 
-      {/* Sidebar (Desktop/Mobile) */}
+      {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 transform lg:transform-none lg:static transition-transform duration-300 ease-in-out ${
         isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
@@ -116,13 +116,15 @@ export default function App() {
         />
       </div>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
         
+        {/* ✅ ส่ง Props เพิ่มเติมให้ Navbar เพื่อให้ Search และ Profile Dropdown ทำงานได้ */}
         <Navbar 
           activePage={activePage} 
           user={user} 
           toggleMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+          setActivePage={handlePageChange} // 🚀 สำหรับระบบ Search
+          onLogout={handleLogout}         // 🚀 สำหรับปุ่ม Logout ใน Dropdown
         />
 
         <main className="flex-1 overflow-y-auto bg-slate-50/50">
@@ -131,7 +133,6 @@ export default function App() {
               {renderContent()}
             </div>
             
-            {/* Footer แสดงยอดผู้เข้าชม */}
             <Footer totalViews={totalViews} /> 
           </div>
         </main>

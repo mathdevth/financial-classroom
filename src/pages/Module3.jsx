@@ -106,7 +106,7 @@ export default function Module3TVMCalculator({ user }) {
     finally { setIsSubmitting(false); }
   };
 
-  // ✅ 3. ส่วนแสดงสูตรคณิตศาสตร์แบบ Visual (แก้ปัญหา Unicode Error)
+  // ✅ 3. ส่วนแสดงสูตรคณิตศาสตร์แบบ Visual (แก้ไขใช้ <sup> เพื่อยกตัวเลข n ขึ้นบน)
   const renderVisualFormula = () => {
     const style = "flex items-center justify-center gap-2 text-xl md:text-2xl font-serif italic text-slate-800 py-4";
     const frac = "flex flex-col items-center mx-1 text-base md:text-lg";
@@ -115,8 +115,8 @@ export default function Module3TVMCalculator({ user }) {
     if (calcType === 'FV_SINGLE') {
       return (
         <div className={style}>
-          <span>FV = PV (1 + i)</span>
-          <span className="text-sm -mt-6">n</span>
+          {/* ✅ ใช้ <sup> เพื่อยก n ขึ้นบนอย่างถูกต้อง */}
+          <span>FV = PV (1 + i)<sup className="text-xs italic">n</sup></span>
         </div>
       );
     }
@@ -127,7 +127,8 @@ export default function Module3TVMCalculator({ user }) {
           <div className={frac}>
             <span>FV</span>
             <div className={line}></div>
-            <span>(1 + i)<span className="text-[10px]">n</span></span>
+            {/* ✅ ใช้ <sup> เพื่อยก n ขึ้นบนอย่างถูกต้อง */}
+            <span>(1 + i)<sup className="text-xs italic">n</sup></span>
           </div>
         </div>
       );
@@ -137,7 +138,8 @@ export default function Module3TVMCalculator({ user }) {
         <div className={style}>
           <span>FVA = PMT × </span>
           <div className={frac}>
-            <span>(1 + i)<span className="text-[10px]">n</span> - 1</span>
+            {/* ✅ ใช้ <sup> เพื่อยก n ขึ้นบนอย่างถูกต้อง */}
+            <span>(1 + i)<sup className="text-xs italic">n</sup> - 1</span>
             <div className={line}></div>
             <span>i</span>
           </div>
@@ -148,7 +150,8 @@ export default function Module3TVMCalculator({ user }) {
       <div className={style}>
         <span>FVA = PMT × </span>
         <div className={frac}>
-          <span>(1 + i)<span className="text-[10px]">n</span> - 1</span>
+          {/* ✅ ใช้ <sup> เพื่อยก n ขึ้นบนอย่างถูกต้อง */}
+          <span>(1 + i)<sup className="text-xs italic">n</sup> - 1</span>
           <div className={line}></div>
           <span>i</span>
         </div>
