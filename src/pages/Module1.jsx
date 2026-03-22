@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-// 1. คลังสถานการณ์จำลอง (Expanded to 14 Scenarios)
+// 1. คลังสถานการณ์จำลอง (14 Scenarios)
 const scamScenarios = [
   {
     id: 1,
@@ -103,6 +103,7 @@ const scamScenarios = [
 ];
 
 export default function Module1ScamAwareness({ user }) {
+  const [gameStarted, setGameStarted] = useState(false); // ✅ ใหม่: หน้า Start
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -110,6 +111,25 @@ export default function Module1ScamAwareness({ user }) {
   const [gameFinished, setGameFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
+  const [latestScore, setLatestScore] = useState(null); // ✅ ใหม่: เก็บสถิติเก่า
+
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
+
+  // ✅ ใหม่: ดึงข้อมูลคะแนนล่าสุดตอนเปิดโมดูล
+  useEffect(() => {
+    const fetchLatest = async () => {
+      try {
+        const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getLatestRecord&userId=${user.id}&moduleName=Module 1: รู้เท่าทันภัย`);
+        const result = await res.json();
+        if (result.status === "success") {
+          setLatestScore(result.rawData);
+        }
+      } catch (err) {
+        console.error("Fetch Error:", err);
+      }
+    };
+    fetchLatest();
+  }, [user.id]);
 
   const scenario = scamScenarios[currentQuestion];
 
@@ -136,13 +156,13 @@ export default function Module1ScamAwareness({ user }) {
     setShowResult(false);
     setUserAnswer(null);
     setGameFinished(false);
+    setGameStarted(true); // เริ่มใหม่ทันที
     setSubmitStatus('');
   };
 
   const saveToGoogleSheets = async () => {
     setIsSubmitting(true);
     setSubmitStatus('กำลังบันทึกคะแนน...');
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
     
     const payload = {
         action: "save",
@@ -159,6 +179,8 @@ export default function Module1ScamAwareness({ user }) {
           body: JSON.stringify(payload)
         });
         setSubmitStatus('บันทึกสำเร็จ ✅');
+        // อัปเดต UI คะแนนล่าสุดทันที
+        setLatestScore(`คะแนน: ${score}/${scamScenarios.length} ข้อ`);
       } catch (error) {
         setSubmitStatus('บันทึกไม่สำเร็จ ❌');
       } finally {
@@ -170,19 +192,49 @@ export default function Module1ScamAwareness({ user }) {
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans">
       
       {/* Header */}
-      <div className="bg-slate-900 p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+      <div className="bg-slate-900 p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center gap-6 relative overflow-hidden border border-slate-800">
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl"></div>
         <div className="w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">
           <span className="material-symbols-outlined text-4xl">security</span>
         </div>
         <div>
-          <h2 className="text-3xl font-black text-white mb-1 tracking-tight">มินิเกม: รู้เท่าทันภัยการเงิน</h2>
-          <p className="text-slate-400 font-medium">จำลอง 14 สถานการณ์ เพื่อสร้างภูมิคุ้มกันมิจฉาชีพ</p>
+          <h2 className="text-3xl font-black text-white mb-1 tracking-tight uppercase">Cyber Security Quiz</h2>
+          <p className="text-slate-400 font-bold italic">Module 1: รู้เท่าทันภัยการเงิน</p>
         </div>
       </div>
 
-      <div className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
-        {!gameFinished ? (
+      <div className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 min-h-[400px] flex flex-col justify-center">
+        
+        {/* ✅ ใหม่: หน้า Start (ถ้ายังไม่กดเริ่มเกม) */}
+        {!gameStarted && !gameFinished ? (
+          <div className="text-center space-y-8 animate-fadeIn">
+            <div className="space-y-4">
+              <h3 className="text-2xl font-black text-slate-800">พร้อมทดสอบทักษะการเอาตัวรอดหรือยัง?</h3>
+              <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
+                เราเตรียม 14 สถานการณ์มิจฉาชีพที่พบบ่อยที่สุดในปี 2026 มาให้คุณลองวิเคราะห์
+              </p>
+            </div>
+
+            {/* ส่วนแสดงคะแนนล่าสุด */}
+            {latestScore ? (
+              <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 inline-block px-10">
+                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">สถิติล่าสุดของคุณ</p>
+                <p className="text-2xl font-black text-indigo-700">{latestScore}</p>
+              </div>
+            ) : (
+              <div className="text-slate-400 text-xs font-bold italic">คุณยังไม่เคยทดสอบโมดูลนี้</div>
+            )}
+
+            <button 
+              onClick={() => setGameStarted(true)} 
+              className="w-full max-w-xs py-5 bg-slate-900 text-white font-black rounded-2xl shadow-xl hover:bg-black transition-all active:scale-95 text-xl flex items-center justify-center gap-3 mx-auto"
+            >
+              <span className="material-symbols-outlined">play_circle</span>
+              เริ่มเล่นเกม
+            </button>
+          </div>
+        ) : !gameFinished ? (
+          /* ส่วนของเกม (Scenario) */
           <div className="animate-fadeIn">
             <div className="mb-8">
               <div className="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
@@ -205,10 +257,10 @@ export default function Module1ScamAwareness({ user }) {
 
             {!showResult ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button onClick={() => handleAnswer(true)} className="bg-white border-2 border-green-500 text-green-700 hover:bg-green-50 p-5 rounded-2xl font-black text-lg transition-all active:scale-95 flex flex-col items-center gap-2">
+                <button onClick={() => handleAnswer(true)} className="bg-white border-2 border-green-500 text-green-700 hover:bg-green-50 p-5 rounded-2xl font-black text-lg transition-all active:scale-95 flex flex-col items-center gap-2 shadow-sm">
                   <span className="material-symbols-outlined text-3xl">verified</span> น่าเชื่อถือ / เรื่องจริง
                 </button>
-                <button onClick={() => handleAnswer(false)} className="bg-white border-2 border-red-500 text-red-700 hover:bg-red-50 p-5 rounded-2xl font-black text-lg transition-all active:scale-95 flex flex-col items-center gap-2">
+                <button onClick={() => handleAnswer(false)} className="bg-white border-2 border-red-500 text-red-700 hover:bg-red-50 p-5 rounded-2xl font-black text-lg transition-all active:scale-95 flex flex-col items-center gap-2 shadow-sm">
                   <span className="material-symbols-outlined text-3xl">gavel</span> หลอกลวง / มิจฉาชีพ
                 </button>
               </div>
@@ -229,10 +281,10 @@ export default function Module1ScamAwareness({ user }) {
                   <div className="bg-white/60 p-5 rounded-2xl">
                     <p className="text-sm font-black text-slate-400 uppercase tracking-tighter mb-1">ทำไมถึงเป็นเช่นนั้น?</p>
                     <p className="text-slate-600 font-medium leading-relaxed">{scenario.explanation}</p>
-                    {scenario.isScam && <p className="mt-3 text-[10px] font-black text-red-400 uppercase italic">ข้อกฎหมาย: {scenario.law}</p>}
+                    {scenario.isScam && <p className="mt-3 text-[10px] font-black text-red-400 uppercase italic border-t pt-3">ข้อกฎหมาย: {scenario.law}</p>}
                   </div>
                 </div>
-                <button onClick={nextQuestion} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl flex items-center justify-center gap-2">
+                <button onClick={nextQuestion} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl flex items-center justify-center gap-2 active:scale-95">
                   {currentQuestion + 1 === scamScenarios.length ? 'ดูสรุปคะแนน' : 'ไปสถานการณ์ถัดไป'}
                   <span className="material-symbols-outlined">arrow_forward</span>
                 </button>
@@ -240,18 +292,23 @@ export default function Module1ScamAwareness({ user }) {
             )}
           </div>
         ) : (
+          /* หน้าสรุปผล (Game Finished) */
           <div className="text-center py-10 space-y-8 animate-fadeIn">
             <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto text-5xl">🏆</div>
-            <h3 className="text-4xl font-black text-slate-800">จบการทดสอบ!</h3>
+            <h3 className="text-4xl font-black text-slate-800 tracking-tighter">จบการทดสอบ!</h3>
             <div className="text-7xl font-black text-blue-600 bg-blue-50 py-10 rounded-[3rem] border-2 border-blue-100 w-full max-w-sm mx-auto shadow-inner">
               {score} <span className="text-2xl text-blue-300 font-bold">/ {scamScenarios.length}</span>
             </div>
             <div className="max-w-sm mx-auto space-y-4">
-              <button onClick={saveToGoogleSheets} disabled={isSubmitting || submitStatus.includes('สำเร็จ')} className={`w-full py-5 font-black rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 ${isSubmitting || submitStatus.includes('สำเร็จ') ? 'bg-slate-100 text-slate-400' : 'bg-green-600 text-white hover:bg-green-700'}`}>
+              <button 
+                onClick={saveToGoogleSheets} 
+                disabled={isSubmitting || submitStatus.includes('สำเร็จ')} 
+                className={`w-full py-5 font-black rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 ${isSubmitting || submitStatus.includes('สำเร็จ') ? 'bg-slate-100 text-slate-400' : 'bg-green-600 text-white hover:bg-green-700'}`}
+              >
                 <span className="material-symbols-outlined">cloud_upload</span>
-                {isSubmitting ? 'กำลังบันทึก...' : submitStatus || 'บันทึกคะแนนเข้า Google Sheets'}
+                {isSubmitting ? 'กำลังบันทึก...' : submitStatus || 'บันทึกคะแนนเพื่อผ่านโมดูล'}
               </button>
-              <button onClick={resetGame} className="w-full text-slate-400 font-black hover:text-slate-800 transition-colors uppercase text-xs tracking-widest">เริ่มใหม่จากข้อแรก</button>
+              <button onClick={resetGame} className="w-full text-slate-400 font-black hover:text-slate-800 transition-colors uppercase text-xs tracking-widest">ทำใหม่อีกครั้ง (Retake)</button>
             </div>
           </div>
         )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // ✅ เพิ่ม useEffect
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 
 export default function Module2TaxSimulator({ user }) {
@@ -32,6 +32,26 @@ export default function Module2TaxSimulator({ user }) {
   const [submitStatus, setSubmitStatus] = useState('');
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
+
+  // ✅ 🤖 ใหม่: ดึงข้อมูลล่าสุดที่เคยกรอกไว้มาแสดงผลอัตโนมัติ
+  useEffect(() => {
+    const loadOldData = async () => {
+      try {
+        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getLatestRecord&userId=${user.id}&moduleName=Module 2: Full Tax`);
+        const result = await response.json();
+        
+        if (result.status === "success" && result.rawData) {
+          const oldData = JSON.parse(result.rawData);
+          if (oldData.incomes) setIncomes(oldData.incomes);
+          if (oldData.deductions) setDeductions(oldData.deductions);
+          console.log("โหลดข้อมูลภาษีเก่าเรียบร้อย!");
+        }
+      } catch (e) {
+        console.log("ยังไม่มีข้อมูลเก่า หรือ ข้อมูลเก่าไม่ใช่รูปแบบ JSON");
+      }
+    };
+    loadOldData();
+  }, [user.id]);
 
   const calculateTax = () => {
     // --- STEP 1: หักค่าใช้จ่าย ---
@@ -68,7 +88,7 @@ export default function Module2TaxSimulator({ user }) {
     const netIncome = netBeforeDonation - dedDonationEdu - dedDonationGeneral;
     const totalActualDeduction = totalDeductionBeforeDonation + dedDonationEdu + dedDonationGeneral;
 
-    // --- STEP 3: คำนวณภาษีแบบขั้นบันได และหาฐานภาษีสูงสุด (Marginal Rate) ---
+    // --- STEP 3: คำนวณภาษีและหาฐานภาษีสูงสุด (Marginal Rate) ---
     let tax = 0;
     let tempNet = netIncome;
     let marginalRate = 0; 
@@ -88,11 +108,10 @@ export default function Module2TaxSimulator({ user }) {
       if (tempNet <= 0) break;
       const taxable = Math.min(tempNet, b.l);
       tax += taxable * b.r;
-      if (taxable > 0) marginalRate = b.r; // จำฐานภาษีสูงสุดที่นักเรียนตกอยู่
+      if (taxable > 0) marginalRate = b.r; 
       tempNet -= taxable;
     }
 
-    // ✅ 🤖 AI Logic: วิเคราะห์คำแนะนำการประหยัดภาษี
     const advisor = {
       show: tax > 0,
       marginalRate: marginalRate * 100,
@@ -112,16 +131,19 @@ export default function Module2TaxSimulator({ user }) {
 
   const saveToSheets = async () => {
     setIsSubmitting(true);
+    // ✅ ใหม่: บันทึกข้อมูลแบบ JSON เพื่อให้ระบบ Load กลับมาแสดงผลได้
+    const fullData = { incomes, deductions };
+    
     try {
       await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST", mode: "no-cors",
         body: JSON.stringify({
           action: "save", userId: user.id,
           moduleName: "Module 2: Full Tax",
-          actionData: `รายได้สุทธิ: ฿${result.netIncome.toLocaleString()} | ภาษี: ฿${result.taxToPay.toLocaleString()}`
+          actionData: JSON.stringify(fullData) 
         })
       });
-      setSubmitStatus('บันทึกสำเร็จ ✅');
+      setSubmitStatus('บันทึกแผนล่าสุดสำเร็จ ✅');
       setTimeout(() => setSubmitStatus(''), 3000);
     } catch (e) { setSubmitStatus('ผิดพลาด ❌'); }
     setIsSubmitting(false);
@@ -206,7 +228,6 @@ export default function Module2TaxSimulator({ user }) {
       {activeTab === 'summary' && result.isCalculated && (
         <div className="space-y-6 animate-fadeIn">
           
-          {/* Header ภาษี */}
           <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
               <div className="text-center md:text-left">
@@ -215,49 +236,30 @@ export default function Module2TaxSimulator({ user }) {
               </div>
               <button onClick={saveToSheets} disabled={isSubmitting} className="px-10 py-5 bg-blue-600 rounded-2xl font-black hover:bg-blue-500 transition-all shadow-xl flex items-center gap-3 active:scale-95">
                 <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'save'}</span>
-                {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกประวัติ'}
+                {isSubmitting ? 'กำลังบันทึก...' : submitStatus || 'บันทึกแผนล่าสุด'}
               </button>
             </div>
-            {submitStatus && <p className="text-center mt-4 font-bold text-green-400 animate-bounce">{submitStatus}</p>}
           </div>
 
-          {/* ✅ 🤖 ใหม่: AI Tax Advisor Card */}
+          {/* AI Advisor Card */}
           {result.advisor.show && (
             <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-[2px] rounded-[2.5rem] shadow-2xl">
               <div className="bg-white rounded-[2.45rem] p-8 md:p-10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                
                 <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
                   <div className="w-24 h-24 bg-indigo-100 rounded-3xl flex items-center justify-center shrink-0 shadow-inner">
                     <span className="material-symbols-outlined text-5xl text-indigo-600 animate-bounce">psychology</span>
                   </div>
-                  
                   <div className="flex-1 space-y-4 text-center md:text-left">
                     <div className="flex items-center justify-center md:justify-start gap-2">
                       <span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest">AI Tax Advisor</span>
                       <h3 className="text-2xl font-black text-slate-800 tracking-tight">คำแนะนำจากครู AI</h3>
                     </div>
-                    
                     <p className="text-slate-600 font-bold leading-relaxed">
                       "คุณ {user.name} ครับ ตอนนี้ฐานภาษีของคุณอยู่ที่ <span className="text-indigo-600 text-xl font-black">{result.advisor.marginalRate}%</span> นะครับ 
                       นั่นแปลว่าหากคุณหาค่าลดหย่อนเพิ่มได้ทุกๆ <span className="underline">10,000 บาท</span> คุณจะได้รับเงินคืนถึง 
                       <span className="text-green-600 text-xl font-black ml-2">฿{result.advisor.potentialSavingPer10k.toLocaleString()}</span> เลยนะ!"
                     </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                      {result.advisor.lifeInsuranceGap > 0 && (
-                        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                          <span className="material-symbols-outlined text-blue-500">health_and_safety</span>
-                          <div className="text-[11px] font-bold text-slate-700 text-left">คุณยังซื้อ <span className="text-blue-600">ประกันชีวิต/สุขภาพ</span> เพิ่มได้อีก ฿{result.advisor.lifeInsuranceGap.toLocaleString()}</div>
-                        </div>
-                      )}
-                      {result.advisor.investGap > 1000 && (
-                        <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-2xl border border-purple-100">
-                          <span className="material-symbols-outlined text-purple-500">trending_up</span>
-                          <div className="text-[11px] font-bold text-slate-700 text-left">ลองพิจารณาลงทุนใน <span className="text-purple-600">SSF / RMF</span> เพื่อออมเงินและลดหย่อนภาษีเพิ่มครับ</div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -270,7 +272,7 @@ export default function Module2TaxSimulator({ user }) {
             <SummaryCard label="ยอดลดหย่อนที่ใช้สิทธิได้" value={result.totalDeduction} color="orange" />
           </div>
 
-          {/* รายละเอียดการหักค่าลดหย่อน */}
+          {/* Breakdown Items */}
           <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
             <h4 className="font-black text-slate-800 mb-6 flex items-center gap-2 border-b pb-4">
               <span className="material-symbols-outlined text-orange-500">receipt_long</span>
@@ -284,55 +286,6 @@ export default function Module2TaxSimulator({ user }) {
               <BreakdownItem label="ดอกเบี้ยที่อยู่อาศัย" value={result.breakdown.realEstate} icon="home" />
               <BreakdownItem label="เงินบริจาค" value={result.breakdown.donation} icon="volunteer_activism" />
             </div>
-            <div className="mt-6 pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-center bg-orange-50 p-4 rounded-xl">
-              <span className="font-black text-orange-800 text-sm">รวมลดหย่อนที่ใช้สิทธิได้ทั้งหมด</span>
-              <span className="text-2xl font-black text-orange-600">฿{result.totalDeduction.toLocaleString()}</span>
-            </div>
-          </div>
-
-          {/* ส่วนแสดงผล Donut Chart */}
-          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
-            <div className="flex-grow w-full space-y-6 relative z-10">
-              <h4 className="font-black text-slate-800 text-lg flex items-center gap-2 border-b pb-4">
-                <span className="material-symbols-outlined text-green-500">donut_large</span>
-                สัดส่วน: เงินออม vs ภาษี
-              </h4>
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
-                  <p className="text-[10px] text-green-700 font-black uppercase mb-1">เงินได้สุทธิ (ออม)</p>
-                  <h3 className="text-xl font-black text-green-600">฿{result.netIncome.toLocaleString()}</h3>
-                  <p className="text-xs font-bold text-green-500 mt-1">({Math.round((result.netIncome / result.totalIncome) * 100)}%)</p>
-                </div>
-                <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-                  <p className="text-[10px] text-red-700 font-black uppercase mb-1">ภาษีที่จ่าย</p>
-                  <h3 className="text-xl font-black text-red-600">฿{result.taxToPay.toLocaleString()}</h3>
-                  <p className="text-xs font-bold text-red-500 mt-1">({Math.round((result.taxToPay / result.totalIncome) * 100)}%)</p>
-                </div>
-              </div>
-            </div>
-            <div className="w-full md:w-1/2 h-[300px] md:h-[350px] shrink-0 relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={taxData} cx="50%" cy="50%" innerRadius={80} outerRadius={120} paddingAngle={5} dataKey="value" stroke="none">
-                    {taxData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Legend verticalAlign="bottom" height={36} content={({ payload }) => (
-                    <div className="flex justify-center gap-4 text-[11px] font-black uppercase text-slate-500 tracking-widest pt-2">
-                      {payload.map((entry, index) => (
-                        <div key={`legend-${index}`} className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                          <span>{entry.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">เงินได้สุทธิรายปี</p>
-                <h3 className="text-2xl font-black text-green-600 tracking-tighter">฿{result.netIncome.toLocaleString()}</h3>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -340,7 +293,7 @@ export default function Module2TaxSimulator({ user }) {
   );
 }
 
-// --- Component ย่อย ---
+// Sub-components เหมือนเดิม ...
 function Input({ label, value, onChange, multiplier = 1 }) {
   const displayAmount = value * multiplier;
   const isPerson = multiplier > 1; 
