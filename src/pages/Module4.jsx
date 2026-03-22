@@ -32,7 +32,7 @@ export default function Module4RetirementPlanner({ user }) {
         const result = await response.json();
         if (result.status === "success" && result.rawData) {
           const oldData = JSON.parse(result.rawData);
-          setPlanInputs(oldData); // โหลดค่าที่เคยกรอกไว้กลับมาทั้งหมด
+          setPlanInputs(oldData); 
           console.log("โหลดแผนเกษียณเก่าเรียบร้อย!");
         }
       } catch (e) { console.log("ยังไม่มีแผนเกษียณเก่า"); }
@@ -57,28 +57,23 @@ export default function Module4RetirementPlanner({ user }) {
       return;
     }
 
-    // เงินก้อนที่ต้องมี ณ วันเกษียณ (คิดแบบเรียบง่าย)
     const targetFund = monthlyExpense * 12 * yearsInRetirement;
 
-    // คำนวณเงินออมรายเดือนเพื่อให้ได้เป้าหมาย (สูตร PMT)
     const r = returnRate / 100;
     const i = r / 12;
     const n = yearsToSave * 12;
     let monthlySaving = i === 0 ? targetFund / n : (targetFund * i) / (Math.pow(1 + i, n) - 1);
 
-    // สร้างข้อมูลกราฟ
     let projection = [];
     let currentBalance = 0;
     const yearlySaving = monthlySaving * 12;
     const yearlyExpense = monthlyExpense * 12;
 
-    // Phase 1: สะสมเงิน
     for (let age = currentAge; age <= retireAge; age++) {
       projection.push({ age, fund: Math.round(currentBalance), phase: 'สะสมเงิน' });
       currentBalance = (currentBalance + yearlySaving) * (1 + r);
     }
 
-    // Phase 2: ใช้เงิน
     for (let age = retireAge + 1; age <= lifeExpectancy; age++) {
       currentBalance = (currentBalance - yearlyExpense) * (1 + r);
       if (currentBalance < 0) currentBalance = 0;
@@ -101,27 +96,29 @@ export default function Module4RetirementPlanner({ user }) {
         body: JSON.stringify({
           action: "save", userId: user.id,
           moduleName: "Module 4: วางแผนเกษียณ",
-          actionData: JSON.stringify(planInputs) // ✅ บันทึกข้อมูลดิบ JSON
+          actionData: JSON.stringify(planInputs) 
         })
       });
       setSubmitStatus('บันทึกแผนล่าสุดสำเร็จ! ✅');
       setTimeout(() => setSubmitStatus(''), 3000);
-    } catch (error) { setSubmitStatus('ล้มเหลล ❌'); }
+    } catch (error) { setSubmitStatus('ล้มเหลว ❌'); }
     finally { setIsSubmitting(false); }
   };
 
-  // ✅ 3. ส่วนแสดงสูตรและตรรกะคำนวณ
+  // ✅ 3. ส่วนแสดงสูตร (แก้บัค Double Backslash เรียบร้อย)
   const renderLogic = () => (
     <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 space-y-4">
       <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Logic: เงินก้อนเกษียณมาจากไหน?</p>
       <div className="space-y-3">
         <div className="text-sm font-bold text-slate-700">
           1. หาเป้าหมายเงินก้อน (Target Fund):
-          <p className="text-lg py-1">$$Fund = Expense \times 12 \times Years$$</p>
+          {/* ✅ ใช้ \\ เพื่อป้องกัน Unicode Error */}
+          <p className="text-lg py-1">$$Fund = Expense \\times 12 \\times Years$$</p>
         </div>
         <div className="text-sm font-bold text-slate-700">
           2. หาเงินออมต่อเดือน (Monthly PMT):
-          <p className="text-lg py-1">$$PMT = \frac{Fund \times i}{(1 + i)^n - 1}$$</p>
+          {/* ✅ ใช้ \\ เพื่อป้องกัน Unicode Error */}
+          <p className="text-lg py-1">$$PMT = \\frac{Fund \\times i}{(1 + i)^n - 1}$$</p>
         </div>
       </div>
       <p className="text-[10px] text-slate-500 italic">**การคำนวณนี้เป็นแบบประมาณการเบื้องต้น (ยังไม่รวมปัจจัยเรื่องเงินเฟ้อ)</p>
@@ -130,8 +127,6 @@ export default function Module4RetirementPlanner({ user }) {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans">
-      
-      {/* Header */}
       <section className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-6 relative overflow-hidden">
         <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center text-4xl shadow-inner shrink-0 animate-pulse">🏖️</div>
         <div>
@@ -141,8 +136,6 @@ export default function Module4RetirementPlanner({ user }) {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* คอลัมน์ซ้าย: Inputs & Logic */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -161,7 +154,6 @@ export default function Module4RetirementPlanner({ user }) {
           </div>
         </div>
 
-        {/* คอลัมน์ขวา: Visualization */}
         <div className="lg:col-span-7">
           {result.isCalculated ? (
             <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-orange-50 h-full flex flex-col space-y-8 animate-fadeIn">
