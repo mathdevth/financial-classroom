@@ -1,18 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react'; // ✅ เพิ่ม useCallback
+import React, { useState, useCallback } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import HistoryModal from '../components/HistoryModal';
 
 export default function Module5LifePlanner({ user }) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // 1. ตัวแปรชีวิต (เน้นรายได้และการเติบโต)
   const [inputs, setInputs] = useState({
-    startingSalary: 15000,
-    salaryIncrease: 5,
-    monthlyExpense: 11000,
-    yearsToSimulate: 30
+    startingSalary: 20000, // เงินเดือนเริ่ม
+    salaryIncrease: 5,     // % เงินเดือนขึ้น
+    monthlyExpense: 12000, // รายจ่ายต่อเดือน
+    yearsToSimulate: 30    // จำลองไปอีกกี่ปี
   });
 
+  // 2. สัดส่วนการจัดสรร (หัวใจของโมดูลนี้)
   const [allocations, setAllocations] = useState({
-    emergency: 40,
-    happiness: 20,
-    wealth: 40
+    emergency: 30, // เก็บสำรองฉุกเฉิน
+    wealth: 50,    // ลงทุนให้ความมั่งคั่ง
+    happiness: 20  // เงินรางวัลชีวิต (กินเที่ยว)
   });
 
   const [projectionData, setProjectionData] = useState([]);
@@ -22,86 +27,52 @@ export default function Module5LifePlanner({ user }) {
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ✅ 1. ลอจิกการคำนวณ (หุ้มด้วย useCallback เพื่อให้เรียกใช้ตอนโหลดข้อมูลได้)
-  const calculateProjection = useCallback((currentInputs = inputs, currentAlloc = allocations) => {
-    const totalAllocation = currentAlloc.emergency + currentAlloc.happiness + currentAlloc.wealth;
-    if (totalAllocation !== 100) {
-      if (isCalculated) alert(`สัดส่วนรวมต้องได้ 100% (ตอนนี้คือ ${totalAllocation}%)`);
+  // ✅ Logic การจำลองอนาคต (Forward Projection)
+  const calculateProjection = () => {
+    const totalAlloc = allocations.emergency + allocations.wealth + allocations.happiness;
+    if (totalAlloc !== 100) {
+      alert(`กรุณาปรับสัดส่วนรวมให้ได้ 100% (ตอนนี้คือ ${totalAlloc}%)`);
       return;
     }
 
     let data = [];
-    let currentSalary = currentInputs.startingSalary;
-    let totalE = 0; let totalH = 0; let totalW = 0;
-    
-    const rateE = 0.02; // กองทุนฉุกเฉิน 2%
-    const rateW = 0.08; // กองทุนมั่งคั่ง 8%
+    let currentSalary = inputs.startingSalary;
+    let totalEmergency = 0; // โต 2% ต่อปี
+    let totalWealth = 0;    // โต 8% ต่อปี
+    let totalHappiness = 0; // ไม่โต (เน้นใช้)
 
-    for (let year = 1; year <= currentInputs.yearsToSimulate; year++) {
-      let monthlyRem = currentSalary - currentInputs.monthlyExpense;
-      if (monthlyRem < 0) monthlyRem = 0;
-      let yearlyRem = monthlyRem * 12;
+    for (let year = 1; year <= inputs.yearsToSimulate; year++) {
+      let monthlySurplus = currentSalary - inputs.monthlyExpense;
+      if (monthlySurplus < 0) monthlySurplus = 0;
+      let yearlySurplus = monthlySurplus * 12;
 
-      let cE = yearlyRem * (currentAlloc.emergency / 100);
-      let cH = yearlyRem * (currentAlloc.happiness / 100);
-      let cW = yearlyRem * (currentAlloc.wealth / 100);
+      // แบ่งเงินตามสัดส่วน
+      let addEmergency = yearlySurplus * (allocations.emergency / 100);
+      let addWealth = yearlySurplus * (allocations.wealth / 100);
+      let addHappiness = yearlySurplus * (allocations.happiness / 100);
 
-      let iE = (totalE + cE) * rateE;
-      let iW = (totalW + cW) * rateW;
-      
-      totalE += cE + iE;
-      totalH += cH;
-      totalW += cW + iW;
-      
+      // ทบต้นดอกเบี้ย
+      totalEmergency = (totalEmergency + addEmergency) * 1.02;
+      totalWealth = (totalWealth + addWealth) * 1.08;
+      totalHappiness += addHappiness; // สะสมเงินรางวัลชีวิต
+
       data.push({
         year: `ปีที่ ${year}`,
-        "กองทุนฉุกเฉิน": Math.round(totalE),
-        "กองทุนความสุข": Math.round(totalH),
-        "กองทุนมั่งคั่ง": Math.round(totalW),
-        totalWealth: Math.round(totalE + totalH + totalW)
+        "เงินสำรอง (2%)": Math.round(totalEmergency),
+        "พอร์ตลงทุน (8%)": Math.round(totalWealth),
+        "เงินใช้สอยสะสม": Math.round(totalHappiness),
+        total: Math.round(totalEmergency + totalWealth + totalHappiness)
       });
 
-      currentSalary *= (1 + (currentInputs.salaryIncrease / 100));
+      // เงินเดือนเพิ่มขึ้นในปีถัดไป
+      currentSalary *= (1 + (inputs.salaryIncrease / 100));
     }
 
     setProjectionData(data);
     setIsCalculated(true);
-  }, [inputs, allocations, isCalculated]);
-
-  // ✅ 2. 🤖 ระบบ Smart Load (ป้องกัน Cache และชื่อภาษาไทย)
-  useEffect(() => {
-    const loadOldData = async () => {
-      if (!user?.id) return;
-      try {
-        // เติม &t= ป้องกัน Cache และ encodeURIComponent ป้องกันชื่อโมดูลเพี้ยน
-        const url = `${GOOGLE_SCRIPT_URL}?action=getLatestRecord&userId=${user.id}&moduleName=${encodeURIComponent("Module 5: Life Planner")}&t=${Date.now()}`;
-        const response = await fetch(url);
-        const result = await response.json();
-        
-        if (result.status === "success" && result.rawData) {
-          const oldData = JSON.parse(result.rawData);
-          if (oldData.inputs) setInputs(oldData.inputs);
-          if (oldData.allocations) setAllocations(oldData.allocations);
-          
-          // ✅ สั่งคำนวณและโชว์กราฟทันทีหลังโหลดข้อมูลสำเร็จ
-          calculateProjection(oldData.inputs, oldData.allocations);
-          console.log("โหลดแผนชีวิตเดิมเรียบร้อย!");
-        }
-      } catch (e) { console.log("ยังไม่มีแผนเดิม"); }
-    };
-    loadOldData();
-  }, [user.id, calculateProjection]);
-
-  const handleInputChange = (e) => {
-    const value = e.target.value.replace(/[^0-9.]/g, '');
-    setInputs({ ...inputs, [e.target.name]: Number(value) });
   };
 
-  const handleAllocationChange = (e) => {
-    setAllocations({ ...allocations, [e.target.name]: Number(e.target.value) });
-  };
-
-  const saveToGoogleSheets = async () => {
+  const saveToSheets = async () => {
     setIsSubmitting(true);
     try {
       await fetch(GOOGLE_SCRIPT_URL, { 
@@ -109,151 +80,134 @@ export default function Module5LifePlanner({ user }) {
         body: JSON.stringify({
           action: "save", userId: user.id,
           moduleName: "Module 5: Life Planner",
-          actionData: JSON.stringify({ inputs, allocations }) 
+          actionData: JSON.stringify({ inputs, allocations, totalWealth: projectionData[projectionData.length-1]?.total }) 
         }) 
       });
-      setSubmitStatus('บันทึกสำเร็จ ✅');
+      setSubmitStatus('บันทึกแผนชีวิตสำเร็จ ✅');
       setTimeout(() => setSubmitStatus(''), 3000);
-    } catch (error) { setSubmitStatus('ผิดพลาด ❌'); }
+    } catch (e) { setSubmitStatus('ผิดพลาด ❌'); }
     finally { setIsSubmitting(false); }
   };
 
-  const renderLogicCard = () => (
-    <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-4 text-sm">
-      <p className="font-black text-blue-600 uppercase tracking-widest text-[10px]">Financial Engine Logic</p>
-      <div className="space-y-2 text-slate-600 font-medium">
-        <p>1. <b>รายได้</b> เพิ่มตามอัตราเงินเดือนขึ้นรายปี</p>
-        <p>2. <b>เงินออม</b> = รายได้ - รายจ่ายประจำ (ออม 100% ของส่วนเหลือ)</p>
-        <p>3. <b>การเติบโต</b>: ฉุกเฉินโต 2%, มั่งคั่งโต 8% ต่อปี (ทบต้น)</p>
-        <div className="pt-2 border-t border-blue-200">
-           <p className="text-center font-serif italic py-1 text-slate-800">
-             {'W_next = (W_now + Savings) × (1 + r)'}
-           </p>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans animate-fadeIn">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-fadeIn font-sans">
       
-      <section className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl flex items-center gap-6 relative overflow-hidden border border-slate-800">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-[80px]"></div>
-        <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg relative z-10 shrink-0">🏆</div>
-        <div className="relative z-10">
-          <h2 className="text-3xl font-black tracking-tight">Life Path Designer</h2>
-          <p className="text-slate-400 font-medium italic">จำลองเส้นทางความมั่งคั่ง 30 ปีข้างหน้า</p>
+      {/* Header ต่างจาก Module 4 ชัดเจน */}
+      <section className="bg-indigo-900 text-white p-8 rounded-[2.5rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden border border-indigo-800">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px]"></div>
+        <div className="flex items-center gap-6 relative z-10">
+          <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-indigo-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg shrink-0">💎</div>
+          <div>
+            <h2 className="text-3xl font-black tracking-tight">Life Simulation</h2>
+            <p className="text-indigo-200 font-medium italic">จำลองการบริหารรายได้และพอร์ตความมั่งคั่งในอนาคต</p>
+          </div>
         </div>
+        <button onClick={() => setIsHistoryOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-white/10 border border-white/20 text-white font-bold rounded-2xl hover:bg-white/20 transition-all shadow-sm relative z-10">
+          <span className="material-symbols-outlined">history</span> ดูประวัติจำลองชีวิต
+        </button>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
-            <h3 className="text-lg font-black text-slate-800 border-b pb-4">ตั้งค่าตัวแปรชีวิต</h3>
-            
-            <InputField label="เงินเดือนเริ่มต้น (บาท)" name="startingSalary" value={inputs.startingSalary} onChange={handleInputChange} />
+            <h3 className="text-lg font-black text-slate-800 border-b pb-4">1. รายได้และรายจ่าย</h3>
+            <InputField label="เงินเดือนเริ่มต้น" name="startingSalary" value={inputs.startingSalary} onChange={(e)=>setInputs({...inputs, startingSalary: Number(e.target.value)})} icon="payments" />
             <div className="grid grid-cols-2 gap-4">
-              <InputField label="เงินเดือนขึ้น (%)" name="salaryIncrease" value={inputs.salaryIncrease} onChange={handleInputChange} />
-              <InputField label="ระยะเวลา (ปี)" name="yearsToSimulate" value={inputs.yearsToSimulate} onChange={handleInputChange} />
+              <InputField label="เงินเดือนขึ้น (%/ปี)" name="salaryIncrease" value={inputs.salaryIncrease} onChange={(e)=>setInputs({...inputs, salaryIncrease: Number(e.target.value)})} icon="trending_up" />
+              <InputField label="ระยะเวลาจำลอง (ปี)" name="yearsToSimulate" value={inputs.yearsToSimulate} onChange={(e)=>setInputs({...inputs, yearsToSimulate: Number(e.target.value)})} icon="calendar_today" />
             </div>
-            <InputField label="รายจ่ายประจำ (บาท/เดือน)" name="monthlyExpense" value={inputs.monthlyExpense} onChange={handleInputChange} />
+            <InputField label="รายจ่ายคงที่ต่อเดือน" name="monthlyExpense" value={inputs.monthlyExpense} onChange={(e)=>setInputs({...inputs, monthlyExpense: Number(e.target.value)})} icon="shopping_bag" />
 
-            <div className="pt-4 border-t border-slate-50 space-y-5">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">สัดส่วนการกระจายเงินเก็บ</h4>
-              <Slider label="กองทุนฉุกเฉิน (2%)" name="emergency" value={allocations.emergency} onChange={handleAllocationChange} color="blue" />
-              <Slider label="กองทุนความสุข (ใช้สอย)" name="happiness" value={allocations.happiness} onChange={handleAllocationChange} color="orange" />
-              <Slider label="กองทุนมั่งคั่ง (8%)" name="wealth" value={allocations.wealth} onChange={handleAllocationChange} color="green" />
-              <div className={`text-center p-3 rounded-2xl text-xs font-black transition-all ${allocations.emergency + allocations.happiness + allocations.wealth === 100 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                รวม: {allocations.emergency + allocations.happiness + allocations.wealth}% {allocations.emergency + allocations.happiness + allocations.wealth !== 100 && '(ต้องครบ 100%)'}
-              </div>
+            <h3 className="text-lg font-black text-indigo-600 border-b pb-4 pt-4">2. กลยุทธ์การจัดสรร (Must be 100%)</h3>
+            <Slider label="กองทุนฉุกเฉิน (โต 2%)" value={allocations.emergency} color="blue" onChange={(e)=>setAllocations({...allocations, emergency: Number(e.target.value)})} />
+            <Slider label="กองทุนพอร์ตลงทุน (โต 8%)" value={allocations.wealth} color="green" onChange={(e)=>setAllocations({...allocations, wealth: Number(e.target.value)})} />
+            <Slider label="เงินรางวัลชีวิต (กินใช้)" value={allocations.happiness} color="orange" onChange={(e)=>setAllocations({...allocations, happiness: Number(e.target.value)})} />
+            
+            <div className={`text-center p-3 rounded-2xl text-xs font-black transition-all ${allocations.emergency + allocations.wealth + allocations.happiness === 100 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+              ผลรวมสัดส่วน: {allocations.emergency + allocations.wealth + allocations.happiness}%
             </div>
 
-            {renderLogicCard()}
-
-            <button onClick={() => calculateProjection()} className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all text-lg">
-              รันผลจำลองอนาคต
-            </button>
+            <button onClick={calculateProjection} className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all text-lg">รันผลจำลองเส้นทางชีวิต</button>
           </div>
         </div>
 
         <div className="lg:col-span-7 space-y-6">
           {isCalculated ? (
             <div className="animate-fadeIn space-y-6">
-              <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-indigo-100 relative overflow-hidden">
-                <div className="flex justify-between items-center mb-8 relative z-10">
-                  <h4 className="font-black text-slate-800">Wealth Stacked Area Chart</h4>
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-indigo-50 flex flex-col h-full">
+                <div className="flex justify-between items-end mb-8">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">คาดการณ์ความมั่งคั่งรวม</p>
+                    <h4 className="text-4xl font-black text-indigo-600">฿{projectionData[projectionData.length-1].total.toLocaleString()}</h4>
+                  </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">เป้าหมายปีที่ {inputs.yearsToSimulate}</p>
-                    <p className="text-3xl font-black text-indigo-600">฿{projectionData.length > 0 ? projectionData[projectionData.length-1].totalWealth.toLocaleString() : 0}</p>
+                    <p className="text-[10px] font-black text-green-500 uppercase">เงินลงทุนสุทธิ</p>
+                    <p className="text-xl font-bold text-slate-700">฿{projectionData[projectionData.length-1]["พอร์ตลงทุน (8%)"].toLocaleString()}</p>
                   </div>
                 </div>
 
-                <div className="h-[400px] w-full relative z-10">
+                <div className="h-[400px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={projectionData}>
                       <defs>
                         <linearGradient id="colorE" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/></linearGradient>
-                        <linearGradient id="colorH" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/><stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/></linearGradient>
                         <linearGradient id="colorW" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/><stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="colorH" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/><stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/></linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="year" tick={{fontSize: 10, fontWeight: 'bold'}} axisLine={false} />
                       <YAxis hide />
                       <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} formatter={(v) => `฿${v.toLocaleString()}`} />
-                      <Legend verticalAlign="top" height={36} />
-                      <Area stackId="1" type="monotone" dataKey="กองทุนฉุกเฉิน" stroke="#3b82f6" fill="url(#colorE)" />
-                      <Area stackId="1" type="monotone" dataKey="กองทุนความสุข" stroke="#f59e0b" fill="url(#colorH)" />
-                      <Area stackId="1" type="monotone" dataKey="กองทุนมั่งคั่ง" stroke="#10b981" fill="url(#colorW)" />
+                      <Legend verticalAlign="top" height={36}/>
+                      <Area stackId="1" type="monotone" dataKey="เงินสำรอง (2%)" stroke="#3b82f6" fill="url(#colorE)" />
+                      <Area stackId="1" type="monotone" dataKey="พอร์ตลงทุน (8%)" stroke="#10b981" fill="url(#colorW)" />
+                      <Area stackId="1" type="monotone" dataKey="เงินใช้สอยสะสม" stroke="#f59e0b" fill="url(#colorH)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
 
-              <div className="bg-slate-900 text-white p-8 rounded-3xl flex justify-between items-center shadow-2xl border border-slate-800">
-                <div className="flex-1">
-                  <p className="text-indigo-400 font-black text-xs uppercase tracking-widest mb-1">Success Projection</p>
-                  <p className="text-sm font-bold text-slate-300">ความมั่งคั่งรวม ฿{projectionData.length > 0 ? projectionData[projectionData.length-1].totalWealth.toLocaleString() : 0} ในอีก {inputs.yearsToSimulate} ปี</p>
-                </div>
-                <button onClick={saveToGoogleSheets} disabled={isSubmitting} className="px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-black rounded-2xl transition-all flex items-center gap-2 active:scale-95 shadow-lg shrink-0">
-                  <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'cloud_done'}</span>
-                  {submitStatus || 'บันทึกแผนล่าสุด'}
+                <button onClick={saveToSheets} disabled={isSubmitting} className="mt-8 w-full py-4 bg-slate-900 text-white font-black rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all">
+                  <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'save_as'}</span>
+                  {submitStatus || 'บันทึกแผนชีวิตลงประวัติ'}
                 </button>
               </div>
             </div>
           ) : (
             <div className="h-full bg-slate-100 rounded-[3.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center font-bold">
               <span className="material-symbols-outlined text-8xl mb-6 opacity-20">insights</span>
-              <p>กรอกข้อมูลตัวแปรชีวิต <br/>เพื่อจำลองเส้นทางการเงินในอนาคต</p>
+              <p className="text-xl">ตั้งค่าตัวแปรและสัดส่วนเงินเก็บ <br/>เพื่อจำลอง "เส้นทางความรวย" ของคุณ</p>
             </div>
           )}
         </div>
       </div>
+
+      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} userId={user.id} moduleName="Module 5: Life Planner" GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} />
     </div>
   );
 }
 
-// Sub-Components
-function InputField({ label, name, value, onChange }) {
+// Sub-components
+function InputField({ label, value, onChange, icon }) {
   return (
     <div className="space-y-1">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
-      <input type="text" name={name} value={value === 0 ? '' : value} onChange={onChange} className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-black text-slate-700 outline-none transition-all shadow-inner" placeholder="0" />
-      <p className="text-[9px] font-black text-indigo-500 text-right mr-1">= {Number(value).toLocaleString()}</p>
+      <div className="relative flex items-center">
+        <span className="material-symbols-outlined absolute left-4 text-slate-400">{icon}</span>
+        <input type="text" value={value === 0 ? '' : value} onChange={onChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-black text-slate-700 outline-none transition-all shadow-inner" placeholder="0" />
+      </div>
     </div>
   );
 }
 
-function Slider({ label, name, value, onChange, color }) {
-  const accentColor = color === 'blue' ? 'accent-blue-600' : color === 'orange' ? 'accent-orange-500' : 'accent-green-600';
-  const textColor = color === 'blue' ? 'text-blue-600' : color === 'orange' ? 'text-orange-500' : 'text-green-600';
+function Slider({ label, value, onChange, color }) {
+  const colors = { blue: 'accent-blue-600 text-blue-600', green: 'accent-green-600 text-green-600', orange: 'accent-orange-500 text-orange-500' };
   return (
     <div className="space-y-2">
-      <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter">
+      <div className="flex justify-between text-[10px] font-black uppercase">
         <span className="text-slate-500">{label}</span>
-        <span className={`${textColor} bg-white px-2 py-0.5 rounded-lg border shadow-sm`}>{value}%</span>
+        <span className={`${colors[color].split(' ')[1]} bg-white px-2 py-0.5 rounded-lg border shadow-sm`}>{value}%</span>
       </div>
-      <input type="range" name={name} min="0" max="100" value={value} onChange={onChange} className={`w-full ${accentColor} h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer`} />
+      <input type="range" min="0" max="100" value={value} onChange={onChange} className={`w-full ${colors[color].split(' ')[0]} h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer`} />
     </div>
   );
 }
