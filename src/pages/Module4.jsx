@@ -58,7 +58,6 @@ export default function Module4RetirementPlanner({ user }) {
     }
 
     const targetFund = monthlyExpense * 12 * yearsInRetirement;
-
     const r = returnRate / 100;
     const i = r / 12;
     const n = yearsToSave * 12;
@@ -105,20 +104,18 @@ export default function Module4RetirementPlanner({ user }) {
     finally { setIsSubmitting(false); }
   };
 
-  // ✅ 3. ส่วนแสดงสูตร (แก้บัค Double Backslash เรียบร้อย)
+  // ✅ 3. ส่วนแสดงสูตร (แก้ไข Double Backslash และห่อด้วยปีกกาแล้ว)
   const renderLogic = () => (
     <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 space-y-4">
       <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Logic: เงินก้อนเกษียณมาจากไหน?</p>
       <div className="space-y-3">
         <div className="text-sm font-bold text-slate-700">
           1. หาเป้าหมายเงินก้อน (Target Fund):
-          {/* ✅ ใช้ \\ เพื่อป้องกัน Unicode Error */}
-          <p className="text-lg py-1">$$Fund = Expense \\times 12 \\times Years$$</p>
+          <p className="text-lg py-1">{"$$Fund = Expense \\\\times 12 \\\\times Years$$"}</p>
         </div>
         <div className="text-sm font-bold text-slate-700">
           2. หาเงินออมต่อเดือน (Monthly PMT):
-          {/* ✅ ใช้ \\ เพื่อป้องกัน Unicode Error */}
-          <p className="text-lg py-1">$$PMT = \\frac{Fund \\times i}{(1 + i)^n - 1}$$</p>
+          <p className="text-lg py-1">{"$$PMT = \\\\frac{Fund \\\\times i}{(1 + i)^n - 1}$$"}</p>
         </div>
       </div>
       <p className="text-[10px] text-slate-500 italic">**การคำนวณนี้เป็นแบบประมาณการเบื้องต้น (ยังไม่รวมปัจจัยเรื่องเงินเฟ้อ)</p>
@@ -142,7 +139,7 @@ export default function Module4RetirementPlanner({ user }) {
               <InputField label="อายุปัจจุบัน" name="currentAge" value={planInputs.currentAge} onChange={handleInputChange} />
               <InputField label="อายุเกษียณ" name="retireAge" value={planInputs.retireAge} onChange={handleInputChange} />
             </div>
-            <InputField label="อายุขัยคาดหวัง (ประมาณ)" name="lifeExpectancy" value={planInputs.lifeExpectancy} onChange={handleInputChange} />
+            <InputField label="อายุขัยคาดหวัง" name="lifeExpectancy" value={planInputs.lifeExpectancy} onChange={handleInputChange} />
             <InputField label="ค่าใช้จ่ายหลังเกษียณ (บาท/เดือน)" name="monthlyExpense" value={planInputs.monthlyExpense} onChange={handleInputChange} />
             <InputField label="ผลตอบแทนที่คาดหวัง (% ต่อปี)" name="returnRate" value={planInputs.returnRate} onChange={handleInputChange} />
 
@@ -161,7 +158,6 @@ export default function Module4RetirementPlanner({ user }) {
                 <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-lg relative overflow-hidden">
                   <p className="text-orange-400 font-black text-[10px] uppercase tracking-[0.2em] mb-1">เป้าหมายเงินกองทุน</p>
                   <h3 className="text-4xl font-black tracking-tighter">฿{result.targetFund.toLocaleString()}</h3>
-                  <span className="material-symbols-outlined absolute -right-2 -bottom-2 text-6xl opacity-10">account_balance_wallet</span>
                 </div>
                 <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100">
                   <p className="text-orange-600 font-black text-[10px] uppercase mb-1">ต้องออมเพิ่มต่อเดือน</p>
@@ -170,7 +166,6 @@ export default function Module4RetirementPlanner({ user }) {
               </div>
 
               <div className="flex-grow w-full h-[350px]">
-                <p className="text-xs font-black text-slate-400 mb-6 uppercase tracking-widest text-center">Retirement Mountain: กราฟภูเขาเงินออมและใช้เงิน</p>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <defs>
@@ -200,7 +195,6 @@ export default function Module4RetirementPlanner({ user }) {
             <div className="h-full bg-slate-100 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400">
               <span className="material-symbols-outlined text-7xl mb-4 opacity-20">landscape</span>
               <p className="font-bold text-lg">ระบุอายุและเป้าหมายชีวิต</p>
-              <p className="text-sm">เพื่อดู "ภูเขาเงินออม" และจุดพีกของสินทรัพย์คุณ</p>
             </div>
           )}
         </div>
