@@ -46,7 +46,7 @@ export default function Module4RetirementPlanner({ user }) {
     setPlanInputs({ ...planInputs, [name]: Number(sanitizedValue) });
   };
 
-  // ✅ 2. ลอจิกการคำนวณ + ภูเขาเงินออม
+  // ✅ 2. ลอจิกการคำนวณ
   const calculateRetirement = () => {
     const { currentAge, retireAge, lifeExpectancy, monthlyExpense, returnRate } = planInputs;
     const yearsToSave = retireAge - currentAge;
@@ -104,31 +104,49 @@ export default function Module4RetirementPlanner({ user }) {
     finally { setIsSubmitting(false); }
   };
 
-  // ✅ 3. ส่วนแสดงสูตร (แก้ไข Double Backslash และห่อด้วยปีกกาแล้ว)
+  // ✅ 3. ส่วนแสดงสูตรแบบ Visual HTML (แก้ปัญหา Build Error และแสดงผลสวยงาม)
   const renderLogic = () => (
-    <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 space-y-4">
-      <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Logic: เงินก้อนเกษียณมาจากไหน?</p>
-      <div className="space-y-3">
-        <div className="text-sm font-bold text-slate-700">
-          1. หาเป้าหมายเงินก้อน (Target Fund):
-          <p className="text-lg py-1">{"$$Fund = Expense \\\\times 12 \\\\times Years$$"}</p>
+    <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 space-y-6 animate-fadeIn">
+      <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest text-center">Logic: ที่มาของตัวเลขแผนเกษียณ</p>
+      
+      <div className="space-y-6">
+        {/* สูตรที่ 1 */}
+        <div className="flex flex-col items-center">
+          <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">1. หาเป้าหมายเงินก้อน (Fund)</p>
+          <div className="text-lg font-serif italic text-slate-800 bg-white px-4 py-2 rounded-xl shadow-sm border border-orange-100">
+            Fund = Expense × 12 × Years
+          </div>
         </div>
-        <div className="text-sm font-bold text-slate-700">
-          2. หาเงินออมต่อเดือน (Monthly PMT):
-          <p className="text-lg py-1">{"$$PMT = \\\\frac{Fund \\\\times i}{(1 + i)^n - 1}$$"}</p>
+
+        {/* สูตรที่ 2 แบบเศษส่วน */}
+        <div className="flex flex-col items-center">
+          <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">2. คำนวณเงินออมต่องวด (PMT)</p>
+          <div className="flex items-center text-xl font-serif italic text-slate-800 bg-white px-6 py-4 rounded-2xl shadow-sm border border-orange-100">
+            <span>PMT = </span>
+            <div className="flex flex-col items-center mx-3">
+              <span className="px-2 border-b border-slate-800 pb-1">Fund × i</span>
+              <span className="px-2 pt-1 text-base">(1 + i)<sup className="text-[10px] italic">n</sup> - 1</span>
+            </div>
+          </div>
         </div>
       </div>
-      <p className="text-[10px] text-slate-500 italic">**การคำนวณนี้เป็นแบบประมาณการเบื้องต้น (ยังไม่รวมปัจจัยเรื่องเงินเฟ้อ)</p>
+
+      <div className="pt-4 border-t border-orange-200/50">
+         <p className="text-[10px] text-slate-500 italic leading-relaxed text-center">
+           * i = ดอกเบี้ยต่องวด | n = จำนวนงวดทั้งหมด (ปี × 12)<br/>
+           ** เป็นการคำนวณเบื้องต้นเพื่อสร้างเป้าหมายในอนาคต
+         </p>
+      </div>
     </div>
   );
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans">
-      <section className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-6 relative overflow-hidden">
+      <section className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
         <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center text-4xl shadow-inner shrink-0 animate-pulse">🏖️</div>
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight">Retirement Planner</h2>
-          <p className="text-slate-500 font-medium italic">วางแผนภูเขาเงินออม เพื่อชีวิตหลังเกษียณที่ออกแบบได้</p>
+          <p className="text-slate-500 font-medium">วางแผน "ภูเขาเงินออม" เพื่อความมั่นคงหลังเกษียณ</p>
         </div>
       </section>
 
@@ -145,7 +163,7 @@ export default function Module4RetirementPlanner({ user }) {
 
             {renderLogic()}
 
-            <button onClick={calculateRetirement} className="w-full py-5 bg-orange-500 text-white font-black rounded-3xl shadow-xl hover:bg-orange-600 active:scale-95 transition-all">
+            <button onClick={calculateRetirement} className="w-full py-5 bg-orange-500 text-white font-black rounded-3xl shadow-xl hover:bg-orange-600 active:scale-95 transition-all text-lg">
               วิเคราะห์ภูเขาเงินออม
             </button>
           </div>
@@ -156,8 +174,9 @@ export default function Module4RetirementPlanner({ user }) {
             <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-orange-50 h-full flex flex-col space-y-8 animate-fadeIn">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-lg relative overflow-hidden">
-                  <p className="text-orange-400 font-black text-[10px] uppercase tracking-[0.2em] mb-1">เป้าหมายเงินกองทุน</p>
-                  <h3 className="text-4xl font-black tracking-tighter">฿{result.targetFund.toLocaleString()}</h3>
+                  <p className="text-orange-400 font-black text-[10px] uppercase tracking-[0.2em] mb-1">เป้าหมายเงินก้อน</p>
+                  <h3 className="text-3xl font-black tracking-tighter">฿{result.targetFund.toLocaleString()}</h3>
+                  <span className="material-symbols-outlined absolute -right-2 -bottom-2 text-6xl opacity-10">account_balance_wallet</span>
                 </div>
                 <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100">
                   <p className="text-orange-600 font-black text-[10px] uppercase mb-1">ต้องออมเพิ่มต่อเดือน</p>
@@ -166,6 +185,7 @@ export default function Module4RetirementPlanner({ user }) {
               </div>
 
               <div className="flex-grow w-full h-[350px]">
+                <p className="text-xs font-black text-slate-400 mb-6 uppercase tracking-widest text-center italic">Retirement Mountain Profile</p>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <defs>
@@ -192,9 +212,9 @@ export default function Module4RetirementPlanner({ user }) {
               </button>
             </div>
           ) : (
-            <div className="h-full bg-slate-100 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400">
+            <div className="h-full bg-slate-100 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center font-bold">
               <span className="material-symbols-outlined text-7xl mb-4 opacity-20">landscape</span>
-              <p className="font-bold text-lg">ระบุอายุและเป้าหมายชีวิต</p>
+              <p>กรอกข้อมูลและกดปุ่มวิเคราะห์ <br/>เพื่อดูภาพรวม "ภูเขาเงินออม" ของคุณ</p>
             </div>
           )}
         </div>
@@ -206,10 +226,10 @@ export default function Module4RetirementPlanner({ user }) {
 function InputField({ label, name, value, onChange }) {
   return (
     <div className="space-y-1">
-      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-2">{label}</label>
+      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
       <input 
         type="text" name={name} value={value === 0 ? '' : value} onChange={onChange}
-        className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none font-black text-slate-700 text-lg shadow-inner"
+        className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none font-black text-slate-700 text-lg shadow-inner transition-all"
         placeholder="0"
       />
       <p className="text-[10px] font-black text-orange-500 text-right mr-1">= {Number(value).toLocaleString()}</p>

@@ -60,26 +60,23 @@ export default function Module5LifePlanner({ user }) {
     let currentSalary = inputs.startingSalary;
     let totalE = 0; let totalH = 0; let totalW = 0;
     
-    // อัตราผลตอบแทนคาดหวังในแต่ละกองทุน
-    const rateE = 0.02; // กองทุนฉุกเฉิน (เงินฝาก/ตลาดเงิน) 2%
-    const rateW = 0.08; // กองทุนมั่งคั่ง (หุ้น/กองทุนรวม) 8%
+    const rateE = 0.02; // กองทุนฉุกเฉิน 2%
+    const rateW = 0.08; // กองทุนมั่งคั่ง 8%
 
     for (let year = 1; year <= inputs.yearsToSimulate; year++) {
       let monthlyRem = currentSalary - inputs.monthlyExpense;
       if (monthlyRem < 0) monthlyRem = 0;
       let yearlyRem = monthlyRem * 12;
 
-      // เงินสมทบเข้าแต่ละกองทุนตามสัดส่วน
       let cE = yearlyRem * (allocations.emergency / 100);
       let cH = yearlyRem * (allocations.happiness / 100);
       let cW = yearlyRem * (allocations.wealth / 100);
 
-      // คิดดอกเบี้ยทบต้น (Compound Interest)
       let iE = (totalE + cE) * rateE;
       let iW = (totalW + cW) * rateW;
       
       totalE += cE + iE;
-      totalH += cH; // กองทุนความสุขมักจะถูกใช้ไป จึงไม่คิดดอกเบี้ยทบต้นสะสมมากนักในโมเดลนี้
+      totalH += cH;
       totalW += cW + iW;
       
       data.push({
@@ -93,7 +90,6 @@ export default function Module5LifePlanner({ user }) {
         yearInt: Math.round(iE + iW)
       });
 
-      // เงินเดือนเพิ่มขึ้นทุกปี
       currentSalary *= (1 + (inputs.salaryIncrease / 100));
     }
 
@@ -109,7 +105,6 @@ export default function Module5LifePlanner({ user }) {
         body: JSON.stringify({
           action: "save", userId: user.id,
           moduleName: "Module 5: Life Planner",
-          // ✅ บันทึกข้อมูลดิบ JSON เพื่อใช้ดึงกลับมาทำใหม่
           actionData: JSON.stringify({ inputs, allocations }) 
         }) 
       });
@@ -119,16 +114,19 @@ export default function Module5LifePlanner({ user }) {
     finally { setIsSubmitting(false); }
   };
 
-  // ✅ 3. ส่วนแสดงตรรกะการเติบโต
+  // ✅ 3. ส่วนแสดงตรรกะการเติบโต (แก้บัค Unicode Escape)
   const renderLogicCard = () => (
     <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-4 text-sm">
       <p className="font-black text-blue-600 uppercase tracking-widest text-[10px]">Financial Engine Logic</p>
       <div className="space-y-2 text-slate-600 font-medium">
-        <p>1. <b>รายได้เพิ่ม</b> ตามอัตราเงินเดือนขึ้นรายปี</p>
-        <p>2. <b>เงินออม</b> = รายได้ - รายจ่ายประจำ (ออม 100% ของส่วนเหลือ)</p>
-        <p>3. <b>การเติบโต</b>: ฉุกเฉินโต 2%, มั่งคั่งโต 8% ต่อปี (ทบต้น)</p>
-        <div className="pt-2 border-t border-blue-200 text-[10px] italic">
-          $$W_{next} = (W_{now} + Contribution) \times (1 + r)$$
+        <p>1. <b>รายได้</b> เพิ่มตามอัตราเงินเดือนขึ้น</p>
+        <p>2. <b>เงินออม</b> = รายได้ - รายจ่ายประจำ</p>
+        <p>3. <b>ดอกเบี้ยทบต้น</b>: ฉุกเฉิน 2%, ลงทุน 8%</p>
+        <div className="pt-2 border-t border-blue-200">
+           {/* ✅ ใช้สูตรแบบ String Literal เพื่อความปลอดภัยตอน Build */}
+           <p className="text-center font-serif italic py-1 text-slate-800">
+             {'W_next = (W_now + Savings) × (1 + r)'}
+           </p>
         </div>
       </div>
     </div>
@@ -137,19 +135,17 @@ export default function Module5LifePlanner({ user }) {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans">
       
-      {/* Header */}
       <section className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl flex items-center gap-6 relative overflow-hidden border border-slate-800">
         <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-[80px]"></div>
         <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg relative z-10 shrink-0">🏆</div>
         <div className="relative z-10">
-          <h2 className="text-3xl font-black tracking-tight tracking-tighter">Life Path Designer</h2>
-          <p className="text-slate-400 font-medium">โมดูลที่ 5: ออกแบบเส้นทางความมั่งคั่ง 30 ปี</p>
+          <h2 className="text-3xl font-black tracking-tight">Life Path Designer</h2>
+          <p className="text-slate-400 font-medium italic">จำลองเส้นทางความมั่งคั่ง 30 ปีข้างหน้า</p>
         </div>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left: Input & Allocation */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
             <h3 className="text-lg font-black text-slate-800 border-b pb-4">ตั้งค่าตัวแปรชีวิต</h3>
@@ -163,11 +159,11 @@ export default function Module5LifePlanner({ user }) {
 
             <div className="pt-4 border-t border-slate-50 space-y-5">
               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">สัดส่วนการกระจายเงินเก็บ</h4>
-              <Slider label="กองทุนฉุกเฉิน (ดอกเบี้ย 2%)" name="emergency" value={allocations.emergency} onChange={handleAllocationChange} color="blue" />
-              <Slider label="กองทุนความสุข (ใช้สอย)" name="happiness" value={allocations.happiness} onChange={handleAllocationChange} color="orange" />
-              <Slider label="กองทุนมั่งคั่ง (ลงทุน 8%)" name="wealth" value={allocations.wealth} onChange={handleAllocationChange} color="green" />
+              <Slider label="กองทุนฉุกเฉิน (2%)" name="emergency" value={allocations.emergency} onChange={handleAllocationChange} color="blue" />
+              <Slider label="กองทุนความสุข (0%)" name="happiness" value={allocations.happiness} onChange={handleAllocationChange} color="orange" />
+              <Slider label="กองทุนมั่งคั่ง (8%)" name="wealth" value={allocations.wealth} onChange={handleAllocationChange} color="green" />
               <div className={`text-center p-3 rounded-2xl text-xs font-black transition-all ${allocations.emergency + allocations.happiness + allocations.wealth === 100 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                รวมทั้งหมด: {allocations.emergency + allocations.happiness + allocations.wealth}% {allocations.emergency + allocations.happiness + allocations.wealth !== 100 && '(ต้องครบ 100%)'}
+                รวม: {allocations.emergency + allocations.happiness + allocations.wealth}% {allocations.emergency + allocations.happiness + allocations.wealth !== 100 && '(ต้องครบ 100%)'}
               </div>
             </div>
 
@@ -179,15 +175,14 @@ export default function Module5LifePlanner({ user }) {
           </div>
         </div>
 
-        {/* Right: Visualization */}
         <div className="lg:col-span-7 space-y-6">
           {isCalculated ? (
             <div className="animate-fadeIn space-y-6">
               <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-indigo-100 relative overflow-hidden">
                 <div className="flex justify-between items-center mb-8 relative z-10">
-                  <h4 className="font-black text-slate-800">กราฟความมั่งคั่งแบบกองรวม (Stacked Area)</h4>
+                  <h4 className="font-black text-slate-800">Wealth Stacked Area Chart</h4>
                   <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">เป้าหมายปีที่ {inputs.yearsToSimulate}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">เป้าหมายปีสุดท้าย</p>
                     <p className="text-3xl font-black text-indigo-600">฿{projectionData[projectionData.length-1].totalWealth.toLocaleString()}</p>
                   </div>
                 </div>
@@ -213,22 +208,24 @@ export default function Module5LifePlanner({ user }) {
                 </div>
               </div>
 
-              <div className="bg-slate-900 text-white p-8 rounded-3xl flex justify-between items-center shadow-2xl">
+              <div className="bg-slate-900 text-white p-8 rounded-3xl flex justify-between items-center shadow-2xl border border-slate-800">
                 <div>
-                  <p className="text-indigo-400 font-black text-xs uppercase tracking-widest mb-1">สรุปแผนของคุณ</p>
-                  <p className="text-sm font-bold text-slate-300">คุณจะมีความมั่งคั่งรวม ฿{projectionData[projectionData.length-1].totalWealth.toLocaleString()} ในอีก {inputs.yearsToSimulate} ปี</p>
+                  <p className="text-indigo-400 font-black text-xs uppercase tracking-widest mb-1">Success Projection</p>
+                  <p className="text-sm font-bold text-slate-300">ความมั่งคั่งรวม ฿{projectionData[projectionData.length-1].totalWealth.toLocaleString()} ในอีก {inputs.yearsToSimulate} ปี</p>
                 </div>
                 <button onClick={saveToGoogleSheets} disabled={isSubmitting} className="px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-black rounded-2xl transition-all flex items-center gap-2 active:scale-95 shadow-lg">
                   <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'cloud_done'}</span>
-                  {submitStatus || 'บันทึกแผนชีวิต'}
+                  {submitStatus || 'บันทึกแผนล่าสุด'}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="h-full bg-slate-100 rounded-[3rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center">
-              <span className="material-symbols-outlined text-8xl mb-6 opacity-20">rocket_launch</span>
-              <h4 className="text-2xl font-black text-slate-600 mb-2">ออกแบบอนาคตของคุณ</h4>
-              <p className="max-w-xs text-sm font-medium leading-relaxed italic">"การออมที่ดีที่สุด คือการออมที่เริ่มตั้งแต่วันที่เงินเดือนเดือนแรกออก"</p>
+            <div className="h-full bg-slate-100 rounded-[3.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center">
+              <span className="material-symbols-outlined text-8xl mb-6 opacity-20">insights</span>
+              <h4 className="text-2xl font-black text-slate-600 mb-2">มองเห็นอนาคตผ่านตัวเลข</h4>
+              <p className="max-w-xs text-sm font-medium leading-relaxed">
+                การออมที่มีวินัยบวกกับพลังของเวลาจะสร้างปาฏิหาริย์ให้การเงินของคุณ <br/>ลองปรับสัดส่วนแล้วกดรันผลดูครับ
+              </p>
             </div>
           )}
         </div>
@@ -237,7 +234,7 @@ export default function Module5LifePlanner({ user }) {
   );
 }
 
-// Sub-Components
+// Sub-Components (คงเดิมตามแนวทางที่สวยงาม)
 function InputField({ label, name, value, onChange }) {
   return (
     <div className="space-y-1">

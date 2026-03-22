@@ -1,28 +1,20 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Dashboard({ user }) {
+// ✅ รับ setActivePage มาเป็น Props เพื่อใช้เปลี่ยนหน้า
+export default function Dashboard({ user, setActivePage }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ ใส่ URL ของ Google Apps Script ของคุณครู
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ฟังก์ชันดึงข้อมูลจริงจากฐานข้อมูล
   const fetchHistory = async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      // ✅ เติม &t= ด้านหลังเพื่อกัน Browser จำค่าเก่า (Cache) ทำให้ข้อมูลสดใหม่เสมอ
       const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getHistory&userId=${user.id}&t=${new Date().getTime()}`);
       const result = await response.json();
-      
       if (result.status === "success") {
-        // 🚨 จุดสำคัญ: ฝั่ง Google Script เรียงจากใหม่ไปเก่ามาให้แล้ว 
-        // เราจึงเอามาใช้งานได้เลยโดยไม่ต้อง .reverse() ซ้ำครับ
-        const freshData = result.data || [];
-        setHistory(freshData);
-      } else {
-        console.warn("Server returned error:", result.message);
+        setHistory(result.data || []);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -35,21 +27,33 @@ export default function Dashboard({ user }) {
     fetchHistory();
   }, [user.id]);
 
-  // --- 🧮 ส่วนคำนวณข้อมูลจริงจากฐานข้อมูล ---
-  
-  // 1. นับว่าเรียนจบไปกี่โมดูลแล้ว
-  const completedModulesList = [...new Set(history.map(item => item.module))];
+  // --- 🧮 ส่วนคำนวณข้อมูล ---
+  const completedModulesList = [...new Set(history.map(item => {
+     if (item.module.includes("Module 1")) return 1;
+     if (item.module.includes("Module 2")) return 2;
+     if (item.module.includes("Module 3")) return 3;
+     if (item.module.includes("Module 4")) return 4;
+     if (item.module.includes("Module 5")) return 5;
+     return null;
+  }))].filter(m => m !== null);
+
   const completedCount = completedModulesList.length;
   const overallProgress = Math.round((completedCount / 5) * 100);
 
-  // 2. เช็คสถานะแต่ละโมดูล (หาอันที่ "ใหม่ที่สุด" ของโมดูลนั้นๆ)
   const checkStatus = (moduleName) => {
-    // เนื่องจาก history เรียงจาก ใหม่ -> เก่า อยู่แล้ว 
-    // .find() จะเจอข้อมูลที่เพิ่งทำล่าสุดเป็นอันแรกเสมอ
     const record = history.find(item => item.module && item.module.includes(moduleName));
     if (record) return { status: 'สำเร็จ', score: record.detail, done: true };
     return { status: 'ยังไม่เริ่ม', score: '-', done: false };
   };
+
+  // ✅ ข้อมูลสำหรับสร้างการ์ดโมดูล (เพื่อลดความซ้ำซ้อนของโค้ด)
+  const moduleList = [
+    { id: 'module1', name: 'Module 1', title: '1. รู้เท่าทันภัย', desc: 'ทดสอบภูมิคุ้มกันมิจฉาชีพ', icon: 'security' },
+    { id: 'module2', name: 'Module 2', title: '2. คำนวณภาษี', desc: 'วางแผนประหยัดภาษี', icon: 'receipt_long' },
+    { id: 'module3', name: 'Module 3', title: '3. เครื่องคิดเลข TVM', desc: 'เรียนรู้มูลค่าของเวลา', icon: 'calculate' },
+    { id: 'module4', name: 'Module 4', title: '4. แผนเกษียณ', desc: 'สร้างภูเขาเงินออม', icon: 'landscape' },
+    { id: 'module5', name: 'Module 5', title: '5. แผนตลอดชีพ', desc: 'จำลองความมั่งคั่ง 30 ปี', icon: 'emoji_events' },
+  ];
 
   return (
     <div className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto space-y-8 md:space-y-12 bg-slate-50 min-h-screen animate-fadeIn">
@@ -57,100 +61,99 @@ export default function Dashboard({ user }) {
       {/* Header */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-2">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">ภาพรวมการเรียนรู้</h2>
-          <p className="text-slate-600 font-medium text-base md:text-lg">
-            ยินดีต้อนรับครับ <span className="text-blue-600 font-bold">คุณ{user.name}</span>! 
-            {history.length > 0 ? ' มาดูความก้าวหน้าล่าสุดของคุณกัน' : ' เริ่มต้นบทเรียนแรกได้เลยครับ'}
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Financial Journey</h2>
+          <p className="text-slate-600 font-medium">
+            ยินดีต้อนรับกลับมาครับ <span className="text-blue-600 font-bold">คุณ{user.name}</span>
           </p>
         </div>
-        <div className="flex gap-3 w-full md:w-auto shrink-0">
-          <button 
-            onClick={fetchHistory}
-            disabled={loading}
-            className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-          >
-            <span className={`material-symbols-outlined text-xl ${loading ? 'animate-spin text-blue-600' : ''}`}>sync</span>
-            <span>{loading ? 'กำลังโหลด...' : 'ซิงค์ข้อมูลล่าสุด'}</span>
-          </button>
-        </div>
+        <button 
+          onClick={fetchHistory}
+          disabled={loading}
+          className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+        >
+          <span className={`material-symbols-outlined text-xl ${loading ? 'animate-spin text-blue-600' : ''}`}>sync</span>
+          <span>{loading ? 'กำลังโหลด...' : 'อัปเดตความก้าวหน้า'}</span>
+        </button>
       </section>
 
       {/* Progress Banner */}
-      <section className="bg-white rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 md:gap-10 shadow-sm border border-slate-100 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+      <section className="bg-slate-900 rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-10 shadow-2xl relative overflow-hidden text-white">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-[100px] -mr-40 -mt-40"></div>
         
-        <div className="flex-grow space-y-4 w-full relative z-10">
+        <div className="flex-grow space-y-6 w-full relative z-10">
           <div className="flex justify-between items-end">
-            <h3 className="text-lg md:text-xl font-bold text-slate-800">ความคืบหน้าโดยรวม</h3>
-            <span className="text-3xl md:text-4xl font-black text-blue-600">{overallProgress}%</span>
+            <div>
+              <h3 className="text-xl font-bold text-blue-400 uppercase tracking-widest text-sm mb-1">Overall Progress</h3>
+              <p className="text-3xl md:text-4xl font-black">ความก้าวหน้าของคุณ</p>
+            </div>
+            <span className="text-5xl font-black text-blue-500">{overallProgress}%</span>
           </div>
-          <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden p-1">
+          <div className="w-full bg-white/10 h-5 rounded-full overflow-hidden p-1 border border-white/5">
             <div 
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(59,130,246,0.5)]"
+              className="bg-gradient-to-r from-blue-400 to-indigo-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(59,130,246,0.4)]"
               style={{ width: `${overallProgress}%` }}
             ></div>
           </div>
-          <p className="text-xs md:text-sm text-slate-500 font-medium flex items-center gap-2">
-            <span className="material-symbols-outlined text-blue-500 text-sm">info</span>
-            คุณผ่านไปแล้ว {completedCount} จาก 5 ด่านสำคัญ
+          <p className="text-sm text-slate-400 font-medium flex items-center gap-2 italic">
+            <span className="material-symbols-outlined text-blue-400 text-sm">stars</span>
+            คุณพิชิตบทเรียนไปแล้ว {completedCount} จาก 5 สถานการณ์จำลอง
           </p>
         </div>
-        
-        <div className="flex items-center gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-100 w-full md:w-auto shrink-0 relative z-10">
-          <div className={`w-3 h-3 rounded-full ${history.length > 0 ? 'bg-green-500' : 'bg-orange-400'} animate-pulse`}></div>
-          <div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">สถานะระบบ</div>
-            <div className="text-sm font-bold text-slate-700">{history.length > 0 ? 'เชื่อมต่อข้อมูลแล้ว' : 'ยังไม่มีประวัติ'}</div>
-          </div>
-        </div>
       </section>
 
-      {/* Module Cards */}
+      {/* Module Cards Grid */}
       <section>
-        <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-blue-600">grid_view</span> 
-          ผลงานล่าสุดแต่ละด่าน
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
-          <ModuleCard title="1. รู้เท่าทันภัย" desc="ทดสอบภูมิคุ้มกันมิจฉาชีพ" icon="security" data={checkStatus("Module 1")} />
-          <ModuleCard title="2. คำนวณภาษี" desc="วางแผนประหยัดภาษี" icon="receipt_long" data={checkStatus("Module 2")} />
-          <ModuleCard title="3. เครื่องคิดเลข TVM" desc="เรียนรู้มูลค่าของเวลา" icon="calculate" data={checkStatus("Module 3")} />
-          <ModuleCard title="4. แผนเกษียณ" desc="สร้างภูเขาเงินออม" icon="landscape" data={checkStatus("Module 4")} />
-          <ModuleCard title="5. แผนตลอดชีพ" desc="จำลองความมั่งคั่ง 30 ปี" icon="emoji_events" data={checkStatus("Module 5")} />
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+            <span className="material-symbols-outlined text-blue-600">rocket_launch</span> 
+            เลือกบทเรียนที่ต้องการ
+          </h3>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">คลิกที่การ์ดเพื่อเริ่มเรียน</span>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          {moduleList.map((m) => (
+            <ModuleCard 
+              key={m.id}
+              title={m.title}
+              desc={m.desc}
+              icon={m.icon}
+              data={checkStatus(m.name)}
+              onClick={() => setActivePage(m.id)} // ✅ ส่ง id หน้าไปเพื่อวาร์ป
+            />
+          ))}
         </div>
       </section>
 
-      {/* Activity & Insight */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <div className="lg:col-span-2 bg-slate-900 text-white p-8 md:p-10 rounded-3xl relative overflow-hidden flex flex-col justify-between shadow-2xl border border-slate-800">
+      {/* Insight & History */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-center relative overflow-hidden">
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                <span className="material-symbols-outlined text-blue-400 text-2xl md:text-3xl">psychology</span>
-              </div>
-              <h3 className="text-xl md:text-2xl font-bold tracking-tight">AI Insight</h3>
+              <span className="px-3 py-1 bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest">AI Advisor</span>
+              <h3 className="text-2xl font-black text-slate-800">สรุปผลการเรียน</h3>
             </div>
-            <p className="text-slate-300 text-base md:text-lg leading-relaxed max-w-xl">
+            <p className="text-slate-600 text-lg leading-relaxed font-medium">
               {history.length > 0 
-                ? `ยินดีด้วยครับคุณ ${user.name}! กิจกรรมล่าสุดคือเรื่อง ${history[0].module} ข้อมูลนี้อัปเดตเรียบร้อยแล้ว หากคุณต้องการพัฒนาคะแนนเพิ่ม สามารถกลับไปเล่นซ้ำได้ตลอดเวลาครับ`
-                : "ยินดีต้อนรับ! ผมคือ AI ผู้ช่วย แนะนำให้คุณเริ่มจากการสร้างภูมิคุ้มกันในโมดูลที่ 1 ก่อนเป็นอันดับแรกครับ"}
+                ? `เก่งมากครับคุณ ${user.name}! กิจกรรมล่าสุดของคุณในเรื่อง "${history[0].module}" ได้รับการบันทึกแล้ว คุณสามารถกลับไปปรับปรุงแผนการเงินได้เสมอนะครับ`
+                : `สวัสดีครับ! ผมเตรียมบทเรียนการเงินที่สนุกที่สุดไว้ให้แล้ว เริ่มต้นที่โมดูลที่ 1 เพื่อทดสอบภูมิคุ้มกันมิจฉาชีพก่อนได้เลยครับ`}
             </p>
           </div>
-          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px]"></div>
+          <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-50 rounded-full blur-3xl opacity-50"></div>
         </div>
 
-        <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col">
-          <h4 className="font-bold text-slate-800 text-lg mb-6 flex items-center gap-2 border-b pb-4">
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <h4 className="font-black text-slate-800 text-lg mb-6 flex items-center gap-2">
             <span className="material-symbols-outlined text-blue-600 font-bold">history</span>
-            ความเคลื่อนไหวล่าสุด
+            ความเคลื่อนไหว
           </h4>
-          <div className="space-y-6 flex-grow overflow-y-auto max-h-[300px] pr-2">
+          <div className="space-y-6">
             {history.length > 0 ? (
-              history.slice(0, 5).map((item, idx) => (
+              history.slice(0, 4).map((item, idx) => (
                 <ActivityItem key={idx} time={item.date} title={item.module} detail={item.detail} />
               ))
             ) : (
-              <div className="text-center py-10 text-slate-400 italic text-sm">ยังไม่มีประวัติบันทึก</div>
+              <div className="text-center py-10 text-slate-300 font-bold italic">ยังไม่มีประวัติกิจกรรม</div>
             )}
           </div>
         </div>
@@ -159,26 +162,46 @@ export default function Dashboard({ user }) {
   );
 }
 
-// --- Sub-Components ---
-function ModuleCard({ title, desc, icon, data }) {
+// --- ✅ Sub-Components ที่ปรับปรุงให้คลิกได้ ---
+
+function ModuleCard({ title, desc, icon, data, onClick }) {
   const isDone = data.done;
   return (
-    <div className={`bg-white p-6 rounded-3xl shadow-sm border transition-all flex flex-col h-full ${isDone ? 'border-green-100' : 'border-slate-100'}`}>
+    <button 
+      onClick={onClick}
+      className={`group relative text-left bg-white p-7 rounded-[2rem] shadow-sm border-2 transition-all duration-300 flex flex-col h-full hover:shadow-xl active:scale-95 ${
+        isDone ? 'border-green-500 shadow-green-50' : 'border-white hover:border-blue-400'
+      }`}
+    >
+      {/* Badge แสดงสถานะ */}
       <div className="flex justify-between items-start mb-6">
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDone ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'}`}>
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
+          isDone ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600'
+        }`}>
           <span className="material-symbols-outlined text-2xl">{icon}</span>
         </div>
-        <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase ${isDone ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+        <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest ${
+          isDone ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-700'
+        }`}>
           {data.status}
         </span>
       </div>
-      <h4 className="font-black text-lg mb-2 text-slate-800">{title}</h4>
-      <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed font-medium">{desc}</p>
-      <div className="flex flex-col gap-2 pt-4 border-t border-slate-50">
-        <span className="text-[10px] font-black text-slate-400 uppercase">สถิติล่าสุด</span>
-        <span className={`text-xs font-bold truncate ${isDone ? 'text-green-600' : 'text-slate-400'}`}>{data.score}</span>
+
+      <h4 className="font-black text-lg mb-2 text-slate-800 group-hover:text-blue-600 transition-colors">{title}</h4>
+      <p className="text-xs text-slate-500 mb-8 flex-grow leading-relaxed font-bold opacity-70 group-hover:opacity-100 transition-opacity">{desc}</p>
+      
+      <div className={`flex flex-col gap-1 pt-4 border-t transition-colors ${isDone ? 'border-green-100' : 'border-slate-50 group-hover:border-blue-100'}`}>
+        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">สถิติล่าสุด</span>
+        <span className={`text-[11px] font-black truncate ${isDone ? 'text-green-600' : 'text-slate-400'}`}>
+          {isDone ? data.score : 'คลิกเพื่อเริ่มบทเรียน'}
+        </span>
       </div>
-    </div>
+
+      {/* เอฟเฟกต์ลูกศรตอน Hover */}
+      <span className="material-symbols-outlined absolute bottom-7 right-7 text-blue-500 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+        arrow_right_alt
+      </span>
+    </button>
   );
 }
 
@@ -186,13 +209,13 @@ function ActivityItem({ time, title, detail }) {
   return (
     <div className="flex gap-4 group">
       <div className="flex flex-col items-center">
-        <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm group-hover:scale-125 transition-all"></div>
-        <div className="w-0.5 h-full bg-slate-100 my-1"></div>
+        <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+        <div className="w-0.5 h-full bg-slate-100 my-1 group-last:hidden"></div>
       </div>
-      <div className="pb-4">
-        <div className="text-[10px] text-slate-400 font-black mb-0.5 tracking-tighter">{time}</div>
-        <div className="text-sm font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors">{title}</div>
-        <div className="text-[11px] text-slate-500 mt-1 italic line-clamp-1">{detail}</div>
+      <div className="pb-6">
+        <div className="text-[9px] text-slate-400 font-black mb-1 uppercase">{time}</div>
+        <div className="text-sm font-black text-slate-800 leading-tight mb-1">{title}</div>
+        <div className="text-[11px] text-slate-500 font-bold line-clamp-1 opacity-70">{detail}</div>
       </div>
     </div>
   );

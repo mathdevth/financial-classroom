@@ -41,7 +41,6 @@ export default function App() {
   useEffect(() => {
     const fetchViews = async () => {
       try {
-        // ยิงไปที่ Code.gs เพื่อบวกยอดวิวและรับยอดรวมกลับมา
         const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getViews`);
         const result = await response.json();
         if (result.status === "success") {
@@ -67,21 +66,26 @@ export default function App() {
     }
   };
 
+  // ✅ ฟังก์ชันเปลี่ยนหน้า (ใช้ทั้งใน Sidebar และส่งต่อให้ Dashboard)
   const handlePageChange = (pageId) => {
     setActivePage(pageId);
     setIsMobileMenuOpen(false); 
+    // สั่งให้เลื่อนขึ้นบนสุดอัตโนมัติเมื่อเปลี่ยนหน้า
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // ✅ 4. ปรับปรุงการ Render เพื่อส่ง setActivePage ให้ Dashboard
   const renderContent = () => {
     switch (activePage) {
-      case 'dashboard': return <Dashboard user={user} />;
+      case 'dashboard': 
+        return <Dashboard user={user} setActivePage={handlePageChange} />; // 🚀 ส่งฟังก์ชันวาร์ปไปที่นี่
       case 'module1': return <Module1ScamAwareness user={user} />;
       case 'module2': return <Module2TaxSimulator user={user} />;
       case 'module3': return <Module3TVMCalculator user={user} />;
       case 'module4': return <Module4RetirementPlanner user={user} />;
       case 'module5': return <Module5LifePlanner user={user} />;
       case 'admin': return <AdminDashboard user={user} />;
-      default: return <Dashboard user={user} />;
+      default: return <Dashboard user={user} setActivePage={handlePageChange} />;
     }
   };
 
@@ -92,6 +96,7 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 font-sans relative">
       
+      {/* Backdrop สำหรับ Mobile Menu */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
@@ -99,6 +104,7 @@ export default function App() {
         ></div>
       )}
 
+      {/* Sidebar (Desktop/Mobile) */}
       <div className={`fixed inset-y-0 left-0 z-50 transform lg:transform-none lg:static transition-transform duration-300 ease-in-out ${
         isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
@@ -110,6 +116,7 @@ export default function App() {
         />
       </div>
 
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
         
         <Navbar 
@@ -118,10 +125,15 @@ export default function App() {
           toggleMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
         />
 
-        <main className="flex-1 overflow-y-auto">
-          {renderContent()}
-          {/* ✅ 4. ส่งค่า totalViews ไปแสดงที่ Footer */}
-          <Footer totalViews={totalViews} /> 
+        <main className="flex-1 overflow-y-auto bg-slate-50/50">
+          <div className="min-h-full flex flex-col">
+            <div className="flex-grow">
+              {renderContent()}
+            </div>
+            
+            {/* Footer แสดงยอดผู้เข้าชม */}
+            <Footer totalViews={totalViews} /> 
+          </div>
         </main>
       </div>
       
