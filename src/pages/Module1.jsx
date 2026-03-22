@@ -1,109 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import HistoryModal from '../components/HistoryModal'; // ✅ นำเข้า Modal ประวัติ
 
-// 1. คลังสถานการณ์จำลอง (14 Scenarios)
+// คลังสถานการณ์จำลอง (คงเดิม)
 const scamScenarios = [
-  {
-    id: 1,
-    text: "เพจ 'รวยด้วยคริปโต' ทักมาบอกว่าคุณคือผู้โชคดี ลงทุนเพียง 1,000 บาท รับกำไร 5,000 บาทใน 1 ชั่วโมง ไม่มีความเสี่ยง",
-    isScam: true,
-    law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1) และ พ.ร.ก.การกู้ยืมเงินที่เป็นการฉ้อโกงประชาชน",
-    explanation: "การันตีผลตอบแทนสูงเกินจริงในเวลาอันสั้นและ 'ไม่มีความเสี่ยง' คือสัญญาณชัดเจนของแชร์ลูกโซ่หรือการหลอกลงทุน"
-  },
-  {
-    id: 2,
-    text: "ชาวต่างชาติโปรไฟล์นักธุรกิจทักแชทมาจีบ บอกว่าส่งกระเป๋าแบรนด์เนมมาให้ แต่ติดศุลกากร ต้องโอนเงินค่าธรรมเนียม 2 หมื่นบาท",
-    isScam: true,
-    law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1) และความผิดฐานฉ้อโกง",
-    explanation: "Romance Scam: มิจฉาชีพจะสร้างความเชื่อใจแล้วอ้างเหตุผลต่างๆ ให้เราโอนเงินค่าธรรมเนียมที่ไม่มีจริงให้"
-  },
-  {
-    id: 3,
-    text: "มี SMS จาก 'ธนาคารสีม่วง' แจ้งว่าบัญชีของคุณมีปัญหา ให้คลิกลิงก์ www.scb-verify-secure.com เพื่อยืนยันตัวตน",
-    isScam: true,
-    law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1) ฐานพยายามดักรับข้อมูล (Phishing)",
-    explanation: "ธนาคารยกเลิกการส่ง SMS แนบลิงก์ทุกกรณี และลิงก์ปลอมมักใช้ชื่อที่คล้ายของจริงแต่สะกดผิดหรือมีขีดกลาง"
-  },
-  {
-    id: 4,
-    text: "ซื้อของจากร้าน Mall ใน Shopee ที่มีสัญลักษณ์ 'ร้านค้าทางการ' และชำระเงินผ่านระบบของแอปพลิเคชันเท่านั้น",
-    isScam: false,
-    law: "ธุรกรรมปลอดภัย",
-    explanation: "การซื้อผ่านแพลตฟอร์มที่มีระบบการันตี (Escrow) จะช่วยคุ้มครองเงินเราจนกว่าจะได้รับของ"
-  },
-  {
-    id: 5,
-    text: "เบอร์นิรนามโทรมาอ้างเป็น 'ตำรวจ สภ.เมือง' บอกว่าคุณมีส่วนเกี่ยวข้องกับคดีฟอกเงิน ต้องโอนเงินในบัญชีมาตรวจสอบ",
-    isScam: true,
-    law: "ความผิดฐานฉ้อโกงประชาชน และแสดงตนเป็นเจ้าพนักงาน",
-    explanation: "ตำรวจหรือเจ้าหน้าที่รัฐไม่มีนโยบายโทรให้ประชาชนโอนเงินมา 'ตรวจสอบ' หากมีคดีจริงจะต้องมีหมายเรียกส่งไปที่บ้าน"
-  },
-  {
-    id: 6,
-    text: "โฆษณาใน Facebook รับสมัครงาน 'กดไลก์สินค้า' หรือ 'รับออเดอร์' รายได้วันละ 500-2,000 บาท ทำงานผ่านมือถือ",
-    isScam: true,
-    law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1)",
-    explanation: "หลอกทำงานออนไลน์: เริ่มแรกจะให้เงินจริงหลักสิบ แต่ต่อมาจะอ้างว่าต้อง 'สำรองเงิน' หรือ 'เติมเครดิต' ถึงจะถอนเงินได้"
-  },
-  {
-    id: 7,
-    text: "แอปพลิเคชัน 'เงินกู้ทันใจ' ให้กู้เงิน 5,000 บาท โดยขอกดเข้าถึงรายชื่อติดต่อในมือถือ และให้โอนค่าค้ำประกันก่อน 500 บาท",
-    isScam: true,
-    law: "พ.ร.บ.ห้ามเรียกดอกเบี้ยเกินอัตรา และ พ.ร.บ.คอมพิวเตอร์ฯ",
-    explanation: "แอปเงินกู้เถื่อนมักเรียกค่าธรรมเนียมก่อนกู้ และจะเข้าถึงรายชื่อเพื่อโทรข่มขู่ประจานหากจ่ายช้า"
-  },
-  {
-    id: 8,
-    text: "เจ้าหน้าที่จากการไฟฟ้าโทรมาบอกว่าคุณชำระค่าไฟเกิน จะคืนเงินให้ 500 บาท โดยให้แอดไลน์และติดตั้งแอป 'PEA Smart'",
-    isScam: true,
-    law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1) ฐานติดตั้งแอปควบคุมมือถือ (Remote Access)",
-    explanation: "การหลอกให้ติดตั้งแอปเพื่อคืนเงิน คือวิธีที่มิจฉาชีพใช้เพื่อควบคุมมือถือและโอนเงินออกจากแอปธนาคาร"
-  },
-  {
-    id: 9,
-    text: "เข้าเว็บไซต์กระทรวงการคลังที่ลงท้ายด้วย .go.th เพื่อเช็กสิทธิสวัสดิการแห่งรัฐด้วยตนเอง",
-    isScam: false,
-    law: "เว็บไซต์หน่วยงานรัฐที่ถูกต้อง",
-    explanation: "เว็บไซต์หน่วยงานรัฐไทยจะลงท้ายด้วย .go.th เสมอ ควรตรวจสอบผ่านเบราว์เซอร์ด้วยการพิมพ์เอง"
-  },
-  {
-    id: 10,
-    text: "ได้รับพัสดุเก็บเงินปลายทาง 300 บาท ทั้งที่ไม่ได้สั่ง แต่คนส่งบอกว่าอาจจะเป็นของกำนัลหรือญาติส่งมาให้",
-    isScam: true,
-    law: "ความผิดฐานฉ้อโกง",
-    explanation: "การส่งพัสดุเก็บเงินปลายทางโดยที่ไม่ได้สั่ง (Brushing Scam) เป็นวิธีหากินของมิจฉาชีพที่เน้นเหยื่อที่จำไม่ได้ว่าสั่งอะไรไปบ้าง"
-  },
-  {
-    id: 11,
-    text: "ได้รับ SMS จากกรมที่ดิน แจ้งให้อัปเดตข้อมูลที่ดินผ่านลิงก์ เพื่อเลี่ยงภาษีที่ดินและสิ่งปลูกสร้าง",
-    isScam: true,
-    law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1)",
-    explanation: "กรมที่ดินไม่มีนโยบายทักหาประชาชนผ่าน SMS หรือแอปเพื่อให้อัปเดตข้อมูลที่ดินออนไลน์ในลักษณะนี้"
-  },
-  {
-    id: 12,
-    text: "เปิดบัญชีเงินฝากประจำแบบดิจิทัลผ่านแอปพลิเคชันอย่างเป็นทางการของธนาคารที่มีการยืนยันตัวตนด้วย NDID",
-    isScam: false,
-    law: "ธุรกรรมธนาคารปกติ",
-    explanation: "การทำธุรกรรมผ่านแอปทางการที่มีการยืนยันตัวตนเข้มงวด ถือเป็นเรื่องปกติและปลอดภัย"
-  },
-  {
-    id: 13,
-    text: "มีผู้หวังดีทักมาใน Facebook แจ้งว่าบัญชีของคุณกำลังจะถูกลบ ให้คลิกลิงก์ยืนยันความเป็นเจ้าของด่วน",
-    isScam: true,
-    law: "Phishing (ดักรับรหัสผ่าน)",
-    explanation: "Platform อย่าง Facebook จะแจ้งเตือนผ่านระบบ Notifications ภายในแอปเท่านั้น ไม่ทักแชทส่วนตัวมาหา"
-  },
-  {
-    id: 14,
-    text: "รับจ้างเปิด 'บัญชีม้า' โดยแลกกับเงินค่าตอบแทน 500 บาท เพื่อให้ผู้อื่นนำไปใช้โอนเงินเข้าออก",
-    isScam: true,
-    law: "พ.ร.ก. มาตรการป้องกันและปราบปรามอาชญากรรมทางเทคโนโลยี พ.ศ. 2566",
-    explanation: "การเปิดบัญชีม้ามีความผิดร้ายแรง โทษจำคุกไม่เกิน 3 ปี ปรับไม่เกิน 3 แสนบาท แม้เราจะไม่ได้เป็นคนโกงเองก็ตาม"
-  }
+  { id: 1, text: "เพจ 'รวยด้วยคริปโต' ทักมาบอกว่าคุณคือผู้โชคดี ลงทุนเพียง 1,000 บาท รับกำไร 5,000 บาทใน 1 ชั่วโมง ไม่มีความเสี่ยง", isScam: true, law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1) และ พ.ร.ก.การกู้ยืมเงินที่เป็นการฉ้อโกงประชาชน", explanation: "การันตีผลตอบแทนสูงเกินจริงในเวลาอันสั้นและ 'ไม่มีความเสี่ยง' คือสัญญาณชัดเจนของแชร์ลูกโซ่หรือการหลอกลงทุน" },
+  { id: 2, text: "ชาวต่างชาติโปรไฟล์นักธุรกิจทักแชทมาจีบ บอกว่าส่งกระเป๋าแบรนด์เนมมาให้ แต่ติดศุลกากร ต้องโอนเงินค่าธรรมเนียม 2 หมื่นบาท", isScam: true, law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1) และความผิดฐานฉ้อโกง", explanation: "Romance Scam: มิจฉาชีพจะสร้างความเชื่อใจแล้วอ้างเหตุผลต่างๆ ให้เราโอนเงินค่าธรรมเนียมที่ไม่มีจริงให้" },
+  { id: 3, text: "มี SMS จาก 'ธนาคารสีม่วง' แจ้งว่าบัญชีของคุณมีปัญหา ให้คลิกลิงก์ www.scb-verify-secure.com เพื่อยืนยันตัวตน", isScam: true, law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1) ฐานพยายามดักรับข้อมูล (Phishing)", explanation: "ธนาคารยกเลิกการส่ง SMS แนบลิงก์ทุกกรณี และลิงก์ปลอมมักใช้ชื่อที่คล้ายของจริงแต่สะกดผิดหรือมีขีดกลาง" },
+  { id: 4, text: "ซื้อของจากร้าน Mall ใน Shopee ที่มีสัญลักษณ์ 'ร้านค้าทางการ' และชำระเงินผ่านระบบของแอปพลิเคชันเท่านั้น", isScam: false, law: "ธุรกรรมปลอดภัย", explanation: "การซื้อผ่านแพลตฟอร์มที่มีระบบการันตี (Escrow) จะช่วยคุ้มครองเงินเราจนกว่าจะได้รับของ" },
+  { id: 5, text: "เบอร์นิรนามโทรมาอ้างเป็น 'ตำรวจ สภ.เมือง' บอกว่าคุณมีส่วนเกี่ยวข้องกับคดีฟอกเงิน ต้องโอนเงินในบัญชีมาตรวจสอบ", isScam: true, law: "ความผิดฐานฉ้อโกงประชาชน และแสดงตนเป็นเจ้าพนักงาน", explanation: "ตำรวจหรือเจ้าหน้าที่รัฐไม่มีนโยบายโทรให้ประชาชนโอนเงินมา 'ตรวจสอบ' หากมีคดีจริงจะต้องมีหมายเรียกส่งไปที่บ้าน" },
+  { id: 6, text: "โฆษณาใน Facebook รับสมัครงาน 'กดไลก์สินค้า' หรือ 'รับออเดอร์' รายได้วันละ 500-2,000 บาท ทำงานผ่านมือถือ", isScam: true, law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1)", explanation: "หลอกทำงานออนไลน์: เริ่มแรกจะให้เงินจริงหลักสิบ แต่ต่อมาจะอ้างว่าต้อง 'สำรองเงิน' หรือ 'เติมเครดิต' ถึงจะถอนเงินได้" },
+  { id: 7, text: "แอปพลิเคชัน 'เงินกู้ทันใจ' ให้กู้เงิน 5,000 บาท โดยขอกดเข้าถึงรายชื่อติดต่อในมือถือ และให้โอนค่าค้ำประกันก่อน 500 บาท", isScam: true, law: "พ.ร.บ.ห้ามเรียกดอกเบี้ยเกินอัตรา และ พ.ร.บ.คอมพิวเตอร์ฯ", explanation: "แอปเงินกู้เถื่อนมักเรียกค่าธรรมเนียมก่อนกู้ และจะเข้าถึงรายชื่อเพื่อโทรข่มขู่ประจานหากจ่ายช้า" },
+  { id: 8, text: "เจ้าหน้าที่จากการไฟฟ้าโทรมาบอกว่าคุณชำระค่าไฟเกิน จะคืนเงินให้ 500 บาท โดยให้แอดไลน์และติดตั้งแอป 'PEA Smart'", isScam: true, law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1) ฐานติดตั้งแอปควบคุมมือถือ (Remote Access)", explanation: "การหลอกให้ติดตั้งแอปเพื่อคืนเงิน คือวิธีที่มิจฉาชีพใช้เพื่อควบคุมมือถือและโอนเงินออกจากแอปธนาคาร" },
+  { id: 9, text: "เข้าเว็บไซต์กระทรวงการคลังที่ลงท้ายด้วย .go.th เพื่อเช็กสิทธิสวัสดิการแห่งรัฐด้วยตนเอง", isScam: false, law: "เว็บไซต์หน่วยงานรัฐที่ถูกต้อง", explanation: "เว็บไซต์หน่วยงานรัฐไทยจะลงท้ายด้วย .go.th เสมอ ควรตรวจสอบผ่านเบราว์เซอร์ด้วยการพิมพ์เอง" },
+  { id: 10, text: "ได้รับพัสดุเก็บเงินปลายทาง 300 บาท ทั้งที่ไม่ได้สั่ง แต่คนส่งบอกว่าอาจจะเป็นของกำนัลหรือญาติส่งมาให้", isScam: true, law: "ความผิดฐานฉ้อโกง", explanation: "การส่งพัสดุเก็บเงินปลายทางโดยที่ไม่ได้สั่ง (Brushing Scam) เป็นวิธีหากินของมิจฉาชีพที่เน้นเหยื่อที่จำไม่ได้ว่าสั่งอะไรไปบ้าง" },
+  { id: 11, text: "ได้รับ SMS จากกรมที่ดิน แจ้งให้อัปเดตข้อมูลที่ดินผ่านลิงก์ เพื่อเลี่ยงภาษีที่ดินและสิ่งปลูกสร้าง", isScam: true, law: "พ.ร.บ.คอมพิวเตอร์ฯ มาตรา 14 (1)", explanation: "กรมที่ดินไม่มีนโยบายทักหาประชาชนผ่าน SMS หรือแอปเพื่อให้อัปเดตข้อมูลที่ดินออนไลน์ในลักษณะนี้" },
+  { id: 12, text: "เปิดบัญชีเงินฝากประจำแบบดิจิทัลผ่านแอปพลิเคชันอย่างเป็นทางการของธนาคารที่มีการยืนยันตัวตนด้วย NDID", isScam: false, law: "ธุรกรรมธนาคารปกติ", explanation: "การทำธุรกรรมผ่านแอปทางการที่มีการยืนยันตัวตนเข้มงวด ถือเป็นเรื่องปกติและปลอดภัย" },
+  { id: 13, text: "มีผู้หวังดีทักมาใน Facebook แจ้งว่าบัญชีของคุณกำลังจะถูกลบ ให้คลิกลิงก์ยืนยันความเป็นเจ้าของด่วน", isScam: true, law: "Phishing (ดักรับรหัสผ่าน)", explanation: "Platform อย่าง Facebook จะแจ้งเตือนผ่านระบบ Notifications ภายในแอปเท่านั้น ไม่ทักแชทส่วนตัวมาหา" },
+  { id: 14, text: "รับจ้างเปิด 'บัญชีม้า' โดยแลกกับเงินค่าตอบแทน 500 บาท เพื่อให้ผู้อื่นนำไปใช้โอนเงินเข้าออก", isScam: true, law: "พ.ร.ก. มาตรการป้องกันและปราบปรามอาชญากรรมทางเทคโนโลยี พ.ศ. 2566", explanation: "การเปิดบัญชีม้ามีความผิดร้ายแรง โทษจำคุกไม่เกิน 3 ปี ปรับไม่เกิน 3 แสนบาท แม้เราจะไม่ได้เป็นคนโกงเองก็ตาม" }
 ];
 
 export default function Module1ScamAwareness({ user }) {
-  const [gameStarted, setGameStarted] = useState(false); // ✅ ใหม่: หน้า Start
+  const [gameStarted, setGameStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -111,25 +28,26 @@ export default function Module1ScamAwareness({ user }) {
   const [gameFinished, setGameFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
-  const [latestScore, setLatestScore] = useState(null); // ✅ ใหม่: เก็บสถิติเก่า
+  const [latestScore, setLatestScore] = useState(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false); // ✅ สถานะเปิด Modal ประวัติ
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ✅ ใหม่: ดึงข้อมูลคะแนนล่าสุดตอนเปิดโมดูล
-  useEffect(() => {
-    const fetchLatest = async () => {
-      try {
-        const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getLatestRecord&userId=${user.id}&moduleName=Module 1: รู้เท่าทันภัย`);
-        const result = await res.json();
-        if (result.status === "success") {
-          setLatestScore(result.rawData);
-        }
-      } catch (err) {
-        console.error("Fetch Error:", err);
+  // ✅ ดึงข้อมูลคะแนนล่าสุดตอนเปิดแอป (รันครั้งเดียว)
+  const fetchLatest = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getLatestRecord&userId=${user.id}&moduleName=${encodeURIComponent("Module 1: รู้เท่าทันภัย")}&t=${Date.now()}`);
+      const result = await res.json();
+      if (result.status === "success") {
+        setLatestScore(result.rawData);
       }
-    };
-    fetchLatest();
+    } catch (err) { console.error(err); }
   }, [user.id]);
+
+  useEffect(() => {
+    fetchLatest();
+  }, [fetchLatest]);
 
   const scenario = scamScenarios[currentQuestion];
 
@@ -156,73 +74,74 @@ export default function Module1ScamAwareness({ user }) {
     setShowResult(false);
     setUserAnswer(null);
     setGameFinished(false);
-    setGameStarted(true); // เริ่มใหม่ทันที
+    setGameStarted(true);
     setSubmitStatus('');
   };
 
   const saveToGoogleSheets = async () => {
     setIsSubmitting(true);
-    setSubmitStatus('กำลังบันทึกคะแนน...');
-    
     const payload = {
-        action: "save",
-        userId: user.id,
-        moduleName: "Module 1: รู้เท่าทันภัย",
-        actionData: `คะแนน: ${score}/${scamScenarios.length} ข้อ`
-      };
-
-      try {
-        await fetch(GOOGLE_SCRIPT_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        setSubmitStatus('บันทึกสำเร็จ ✅');
-        // อัปเดต UI คะแนนล่าสุดทันที
-        setLatestScore(`คะแนน: ${score}/${scamScenarios.length} ข้อ`);
-      } catch (error) {
-        setSubmitStatus('บันทึกไม่สำเร็จ ❌');
-      } finally {
-        setIsSubmitting(false);
-      }
+      action: "save",
+      userId: user.id,
+      moduleName: "Module 1: รู้เท่าทันภัย",
+      actionData: `คะแนน: ${score}/${scamScenarios.length} ข้อ`
     };
 
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(payload)
+      });
+      setSubmitStatus('บันทึกสำเร็จ ✅');
+      setLatestScore(`คะแนน: ${score}/${scamScenarios.length} ข้อ`);
+    } catch (error) {
+      setSubmitStatus('บันทึกไม่สำเร็จ ❌');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans animate-fadeIn">
       
-      {/* Header */}
-      <div className="bg-slate-900 p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center gap-6 relative overflow-hidden border border-slate-800">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl"></div>
-        <div className="w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">
-          <span className="material-symbols-outlined text-4xl">security</span>
+      {/* Header & History Button */}
+      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div className="flex items-center gap-6">
+          <div className="w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">
+            <span className="material-symbols-outlined text-4xl">security</span>
+          </div>
+          <div>
+            <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Cyber Security Quiz</h2>
+            <p className="text-slate-500 font-bold italic">Module 1: รู้เท่าทันภัยการเงิน</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-3xl font-black text-white mb-1 tracking-tight uppercase">Cyber Security Quiz</h2>
-          <p className="text-slate-400 font-bold italic">Module 1: รู้เท่าทันภัยการเงิน</p>
-        </div>
-      </div>
+        <button 
+          onClick={() => setIsHistoryOpen(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm shrink-0"
+        >
+          <span className="material-symbols-outlined text-blue-600">history</span>
+          ประวัติการทดสอบ
+        </button>
+      </section>
 
       <div className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 min-h-[400px] flex flex-col justify-center">
         
-        {/* ✅ ใหม่: หน้า Start (ถ้ายังไม่กดเริ่มเกม) */}
+        {/* หน้า Start */}
         {!gameStarted && !gameFinished ? (
           <div className="text-center space-y-8 animate-fadeIn">
             <div className="space-y-4">
               <h3 className="text-2xl font-black text-slate-800">พร้อมทดสอบทักษะการเอาตัวรอดหรือยัง?</h3>
               <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
-                เราเตรียม 14 สถานการณ์มิจฉาชีพที่พบบ่อยที่สุดในปี 2026 มาให้คุณลองวิเคราะห์
+                เราเตรียม 14 สถานการณ์มิจฉาชีพที่พบบ่อยที่สุดมาให้คุณลองวิเคราะห์
               </p>
             </div>
 
-            {/* ส่วนแสดงคะแนนล่าสุด */}
-            {latestScore ? (
+            {latestScore && (
               <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 inline-block px-10">
                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">สถิติล่าสุดของคุณ</p>
                 <p className="text-2xl font-black text-indigo-700">{latestScore}</p>
               </div>
-            ) : (
-              <div className="text-slate-400 text-xs font-bold italic">คุณยังไม่เคยทดสอบโมดูลนี้</div>
             )}
 
             <button 
@@ -242,10 +161,7 @@ export default function Module1ScamAwareness({ user }) {
                 <span className="text-blue-600">คะแนน: {score}</span>
               </div>
               <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                <div 
-                  className="bg-blue-600 h-full transition-all duration-500"
-                  style={{ width: `${((currentQuestion) / scamScenarios.length) * 100}%` }}
-                ></div>
+                <div className="bg-blue-600 h-full transition-all duration-500" style={{ width: `${((currentQuestion) / scamScenarios.length) * 100}%` }}></div>
               </div>
             </div>
             
@@ -292,7 +208,7 @@ export default function Module1ScamAwareness({ user }) {
             )}
           </div>
         ) : (
-          /* หน้าสรุปผล (Game Finished) */
+          /* หน้าสรุปผล */
           <div className="text-center py-10 space-y-8 animate-fadeIn">
             <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto text-5xl">🏆</div>
             <h3 className="text-4xl font-black text-slate-800 tracking-tighter">จบการทดสอบ!</h3>
@@ -305,7 +221,7 @@ export default function Module1ScamAwareness({ user }) {
                 disabled={isSubmitting || submitStatus.includes('สำเร็จ')} 
                 className={`w-full py-5 font-black rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 ${isSubmitting || submitStatus.includes('สำเร็จ') ? 'bg-slate-100 text-slate-400' : 'bg-green-600 text-white hover:bg-green-700'}`}
               >
-                <span className="material-symbols-outlined">cloud_upload</span>
+                <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'cloud_upload'}</span>
                 {isSubmitting ? 'กำลังบันทึก...' : submitStatus || 'บันทึกคะแนนเพื่อผ่านโมดูล'}
               </button>
               <button onClick={resetGame} className="w-full text-slate-400 font-black hover:text-slate-800 transition-colors uppercase text-xs tracking-widest">ทำใหม่อีกครั้ง (Retake)</button>
@@ -313,6 +229,15 @@ export default function Module1ScamAwareness({ user }) {
           </div>
         )}
       </div>
+
+      {/* ✅ Modal ประวัติการทดสอบ */}
+      <HistoryModal 
+        isOpen={isHistoryOpen} 
+        onClose={() => setIsHistoryOpen(false)} 
+        userId={user.id} 
+        moduleName="Module 1: รู้เท่าทันภัย" 
+        GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} 
+      />
     </div>
   );
 }
