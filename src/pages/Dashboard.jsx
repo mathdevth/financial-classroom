@@ -4,7 +4,7 @@ export default function Dashboard({ user }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ ใส่ URL ของ Google Apps Script ของคุณครูเรียบร้อยครับ
+  // ✅ ใส่ URL ของ Google Apps Script ของคุณครู
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
   // ฟังก์ชันดึงข้อมูลจริงจากฐานข้อมูล
@@ -12,13 +12,13 @@ export default function Dashboard({ user }) {
     if (!user?.id) return;
     setLoading(true);
     try {
-      // ✅ แก้ไข: เพิ่ม ?action=getHistory เข้าไปเพื่อให้ Script ฝั่ง Google รู้ว่าต้องดึงข้อมูล
       const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getHistory&userId=${user.id}`);
       const result = await response.json();
       
-      // ✅ แก้ไข: ตรวจสอบสถานะ success และดึงข้อมูลจากตัวแปร data
       if (result.status === "success") {
-        setHistory(result.data || []);
+        // ✅ เพิ่ม .reverse() ตรงนี้ เพื่อให้ข้อมูลล่าสุดเด้งมาอยู่บนสุดเสมอ
+        const reversedData = result.data ? [...result.data].reverse() : [];
+        setHistory(reversedData);
       } else {
         console.warn("Server returned error:", result.message);
       }
@@ -42,44 +42,44 @@ export default function Dashboard({ user }) {
 
   // 2. เช็คสถานะแต่ละโมดูลเพื่อเอาไปแสดงในการ์ด
   const checkStatus = (moduleName) => {
-    // ค้นหาประวัติที่ชื่อโมดูลตรงกัน
+    // ค้นหาประวัติที่ชื่อโมดูลตรงกัน (เนื่องจากเรา reverse() ข้อมูลแล้ว มันจะเจอข้อมูล "ล่าสุด" ของโมดูลนั้นเสมอ)
     const record = history.find(item => item.module && item.module.includes(moduleName));
     if (record) return { status: 'สำเร็จ', score: record.detail, done: true };
     return { status: 'ยังไม่เริ่ม', score: '-', done: false };
   };
 
   return (
-    <div className="p-8 lg:p-12 max-w-7xl mx-auto space-y-12 bg-slate-50 min-h-screen animate-fadeIn">
+    <div className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto space-y-8 md:space-y-12 bg-slate-50 min-h-screen animate-fadeIn">
       
       {/* Header: แสดงชื่อผู้ใช้จริง */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-2">
-          <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">ภาพรวมการเรียนรู้</h2>
-          <p className="text-slate-600 font-medium text-lg">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">ภาพรวมการเรียนรู้</h2>
+          <p className="text-slate-600 font-medium text-base md:text-lg">
             ยินดีต้อนรับครับ <span className="text-blue-600 font-bold">คุณ{user.name}</span>! 
-            {history.length > 0 ? ' มาดูความก้าวหน้าของคุณกัน' : ' เริ่มต้นบทเรียนแรกได้เลยครับ'}
+            {history.length > 0 ? ' มาดูความก้าวหน้าล่าสุดของคุณกัน' : ' เริ่มต้นบทเรียนแรกได้เลยครับ'}
           </p>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex gap-3 w-full md:w-auto shrink-0">
           <button 
             onClick={fetchHistory}
             disabled={loading}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
           >
-            <span className={`material-symbols-outlined text-xl ${loading ? 'animate-spin' : ''}`}>sync</span>
-            <span>{loading ? 'กำลังโหลด...' : 'ซิงค์ข้อมูล'}</span>
+            <span className={`material-symbols-outlined text-xl ${loading ? 'animate-spin text-blue-600' : ''}`}>sync</span>
+            <span>{loading ? 'กำลังโหลด...' : 'ซิงค์ข้อมูลล่าสุด'}</span>
           </button>
         </div>
       </section>
 
       {/* Progress Banner: คำนวณ % จริงจากฐานข้อมูล */}
-      <section className="bg-white rounded-3xl p-8 flex flex-col md:flex-row items-center gap-10 shadow-sm border border-slate-100 relative overflow-hidden">
+      <section className="bg-white rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 md:gap-10 shadow-sm border border-slate-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
         
         <div className="flex-grow space-y-4 w-full relative z-10">
           <div className="flex justify-between items-end">
-            <h3 className="text-xl font-bold text-slate-800">ความคืบหน้าการเรียนรู้โดยรวม</h3>
-            <span className="text-4xl font-black text-blue-600">{overallProgress}%</span>
+            <h3 className="text-lg md:text-xl font-bold text-slate-800">ความคืบหน้าโดยรวม</h3>
+            <span className="text-3xl md:text-4xl font-black text-blue-600">{overallProgress}%</span>
           </div>
           <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden p-1">
             <div 
@@ -87,82 +87,68 @@ export default function Dashboard({ user }) {
               style={{ width: `${overallProgress}%` }}
             ></div>
           </div>
-          <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
+          <p className="text-xs md:text-sm text-slate-500 font-medium flex items-center gap-2">
             <span className="material-symbols-outlined text-blue-500 text-sm">info</span>
-            คุณเรียนจบไปแล้ว {completedCount} จาก 5 โมดูลหลัก
+            คุณผ่านไปแล้ว {completedCount} จาก 5 ด่านสำคัญ
           </p>
         </div>
         
         <div className="flex items-center gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-100 w-full md:w-auto shrink-0 relative z-10">
           <div className={`w-3 h-3 rounded-full ${history.length > 0 ? 'bg-green-500' : 'bg-orange-400'} animate-pulse`}></div>
           <div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">สถานะปัจจุบัน</div>
-            <div className="text-sm font-bold text-slate-700">{history.length > 0 ? 'มีประวัติการเรียน' : 'ยังไม่มีข้อมูล'}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">สถานะระบบ</div>
+            <div className="text-sm font-bold text-slate-700">{history.length > 0 ? 'เชื่อมต่อข้อมูลแล้ว' : 'ยังไม่มีประวัติ'}</div>
           </div>
         </div>
       </section>
 
-      {/* Module Cards: แสดงสถานะจริงตาม Module ที่เคยเรียน */}
+      {/* Module Cards */}
       <section>
-        <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+        <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
           <span className="material-symbols-outlined text-blue-600">grid_view</span> 
-          สถานะรายโมดูล (ข้อมูลจริง)
+          ผลงานล่าสุดแต่ละด่าน
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          <ModuleCard 
-            title="1. รู้เท่าทันภัย" desc="ป้องกันภัยไซเบอร์" icon="security" 
-            data={checkStatus("Module 1")} color="green"
-          />
-          <ModuleCard 
-            title="2. คำนวณภาษี" desc="วางแผนลดหย่อนภาษี" icon="receipt_long" 
-            data={checkStatus("Module 2")} color="green"
-          />
-          <ModuleCard 
-            title="3. เครื่องคิดเลข TVM" desc="มูลค่าเงินตามเวลา" icon="calculate" 
-            data={checkStatus("Module 3")} color="blue"
-          />
-          <ModuleCard 
-            title="4. แผนเกษียณ" desc="เตรียมตัวสู่วัยเกษียณ" icon="elderly" 
-            data={checkStatus("Module 4")} color="orange"
-          />
-          <ModuleCard 
-            title="5. แผนตลอดชีพ" desc="กระแสเงินสดจำลอง" icon="emoji_events" 
-            data={checkStatus("Module 5")} color="purple"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
+          <ModuleCard title="1. รู้เท่าทันภัย" desc="ทดสอบภูมิคุ้มกันมิจฉาชีพ" icon="security" data={checkStatus("Module 1")} />
+          <ModuleCard title="2. คำนวณภาษี" desc="วางแผนประหยัดภาษี" icon="receipt_long" data={checkStatus("Module 2")} />
+          <ModuleCard title="3. เครื่องคิดเลข TVM" desc="เรียนรู้มูลค่าของเวลา" icon="calculate" data={checkStatus("Module 3")} />
+          <ModuleCard title="4. แผนเกษียณ" desc="สร้างภูเขาเงินออม" icon="landscape" data={checkStatus("Module 4")} />
+          <ModuleCard title="5. แผนตลอดชีพ" desc="จำลองความมั่งคั่ง 30 ปี" icon="emoji_events" data={checkStatus("Module 5")} />
         </div>
       </section>
 
       {/* Activity & Insight */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-slate-900 text-white p-10 rounded-3xl relative overflow-hidden flex flex-col justify-between shadow-2xl border border-slate-800">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="lg:col-span-2 bg-slate-900 text-white p-8 md:p-10 rounded-3xl relative overflow-hidden flex flex-col justify-between shadow-2xl border border-slate-800">
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                <span className="material-symbols-outlined text-blue-400 text-3xl">psychology</span>
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                <span className="material-symbols-outlined text-blue-400 text-2xl md:text-3xl">psychology</span>
               </div>
-              <h3 className="text-2xl font-bold tracking-tight">AI Intelligence Insight</h3>
+              <h3 className="text-xl md:text-2xl font-bold tracking-tight">AI Intelligence Insight</h3>
             </div>
-            <p className="text-slate-300 text-lg leading-relaxed max-w-xl">
+            <p className="text-slate-300 text-base md:text-lg leading-relaxed max-w-xl">
               {history.length > 0 
-                ? `ยินดีด้วยครับคุณ ${user.name}! คุณเรียนเรื่อง ${history[0].module} ล่าสุด แนะนำให้ลองทบทวนเรื่องดอกเบี้ยทบต้นในโมดูลที่ 3 ต่อเพื่อผลลัพธ์ที่ดีขึ้นครับ`
-                : "ยินดีต้อนรับสมาชิกใหม่! แนะนำให้คุณเริ่มจากโมดูลที่ 1 เพื่อสร้างพื้นฐานภูมิคุ้มกันทางการเงินที่แข็งแกร่งครับ"}
+                ? `เก่งมากครับคุณ ${user.name}! กิจกรรมล่าสุดของคุณคือการเรียนรู้ ${history[0].module} 
+                   ถ้าคุณทำข้อไหนยังได้คะแนนไม่เต็ม สามารถเข้าไปกดทำซ้ำเพื่ออัปเดตสถิติให้เป็น 100% ได้ตลอดเวลาเลยนะครับ สู้ๆ ✌️`
+                : "ยินดีต้อนรับสู่ห้องเรียนการเงิน! ผมคือ AI ผู้ช่วยของคุณ แนะนำให้คุณเริ่มจากการสร้างภูมิคุ้มกันใน โมดูลที่ 1 ก่อนเป็นอันดับแรกครับ"}
             </p>
           </div>
           <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px]"></div>
         </div>
 
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col">
+        <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col">
           <h4 className="font-bold text-slate-800 text-lg mb-6 flex items-center gap-2 border-b pb-4">
             <span className="material-symbols-outlined text-blue-600 font-bold">history</span>
-            กิจกรรมล่าสุด
+            ความเคลื่อนไหวล่าสุด
           </h4>
-          <div className="space-y-6 flex-grow overflow-y-auto max-h-[300px] pr-2">
+          <div className="space-y-6 flex-grow overflow-y-auto max-h-[300px] pr-2 scrollbar-thin scrollbar-thumb-slate-200">
             {history.length > 0 ? (
               history.slice(0, 5).map((item, idx) => (
                 <ActivityItem key={idx} time={item.date} title={item.module} detail={item.detail} />
               ))
             ) : (
-              <div className="text-center py-10 text-slate-400 italic text-sm">ยังไม่มีประวัติการเรียน</div>
+              <div className="text-center py-10 text-slate-400 italic text-sm">ยังไม่มีประวัติบันทึกไว้ในระบบ</div>
             )}
           </div>
         </div>
@@ -171,25 +157,26 @@ export default function Dashboard({ user }) {
   );
 }
 
-// --- Sub-Components (คงเดิมแต่ปรับปรุงการแสดงผล) ---
+// --- Sub-Components ---
 
-function ModuleCard({ title, desc, icon, data, color }) {
+function ModuleCard({ title, desc, icon, data }) {
   const isDone = data.done;
   return (
-    <div className={`bg-white p-6 rounded-2xl shadow-sm border transition-all relative overflow-hidden flex flex-col h-full ${isDone ? 'border-green-100' : 'border-slate-100 opacity-80'}`}>
+    <div className={`bg-white p-6 rounded-3xl shadow-sm border transition-all relative overflow-hidden flex flex-col h-full ${isDone ? 'border-green-100 hover:border-green-300' : 'border-slate-100 opacity-90'}`}>
       <div className="flex justify-between items-start mb-6">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDone ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${isDone ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'}`}>
           <span className="material-symbols-outlined text-2xl">{icon}</span>
         </div>
-        <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase ${isDone ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+        <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider ${isDone ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
           {data.status}
         </span>
       </div>
-      <h4 className="font-bold text-lg mb-2 text-slate-800">{title}</h4>
-      <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed">{desc}</p>
-      <div className="flex items-center justify-between text-xs font-bold pt-4 border-t border-slate-50">
-        <span className="text-slate-400">ข้อมูล: {data.score}</span>
-        {isDone && <span className="text-green-600 font-black">100%</span>}
+      <h4 className="font-black text-lg mb-2 text-slate-800">{title}</h4>
+      <p className="text-xs text-slate-500 mb-6 flex-grow leading-relaxed font-medium">{desc}</p>
+      
+      <div className="flex flex-col gap-2 pt-4 border-t border-slate-50">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">บันทึกสถิติล่าสุด</span>
+        <span className={`text-xs font-bold truncate ${isDone ? 'text-green-600' : 'text-slate-400'}`}>{data.score}</span>
       </div>
     </div>
   );
@@ -199,11 +186,11 @@ function ActivityItem({ time, title, detail }) {
   return (
     <div className="flex gap-4 group">
       <div className="flex flex-col items-center">
-        <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm group-hover:scale-125 transition-transform"></div>
-        <div className="w-0.5 h-full bg-slate-50 my-1"></div>
+        <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm group-hover:scale-125 group-hover:bg-blue-600 transition-all"></div>
+        <div className="w-0.5 h-full bg-slate-100 my-1 group-hover:bg-blue-100 transition-colors"></div>
       </div>
       <div className="pb-4">
-        <div className="text-[10px] text-slate-400 font-bold uppercase mb-0.5 tracking-tighter">{time}</div>
+        <div className="text-[10px] text-slate-400 font-black uppercase mb-0.5 tracking-tighter">{time}</div>
         <div className="text-sm font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors">{title}</div>
         <div className="text-[11px] text-slate-500 mt-1 italic line-clamp-1">{detail}</div>
       </div>

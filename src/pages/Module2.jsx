@@ -14,8 +14,8 @@ export default function Module2TaxSimulator({ user }) {
   const [deductions, setDeductions] = useState({
     spouse: false,
     parentsCount: 0,
-    childrenOld: 0, // เกิดก่อน 2561
-    childrenNew: 0, // เกิดหลัง 2561 (คนที่ 2 เป็นต้นไป)
+    childrenOld: 0, 
+    childrenNew: 0, 
     lifeInsurance: 0,
     healthInsurance: 0,
     socialSecurity: 0,
@@ -34,7 +34,7 @@ export default function Module2TaxSimulator({ user }) {
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
   const calculateTax = () => {
-    // Logic การคำนวณ (คงเดิมตามมาตรฐานสรรพากร)
+    // --- STEP 1: หักค่าใช้จ่าย ---
     const exp1_2 = Math.min((incomes.m40_1 + incomes.m40_2) * 0.5, 100000);
     const exp3 = Math.min(incomes.m40_3 * 0.5, 100000);
     const exp5 = incomes.m40_5 * 0.3;
@@ -45,11 +45,14 @@ export default function Module2TaxSimulator({ user }) {
     const totalIncome = Object.values(incomes).reduce((a, b) => a + b, 0);
     const totalExpense = exp1_2 + exp3 + exp5 + exp6 + exp7 + exp8;
 
+    // --- STEP 2: หักค่าลดหย่อน (อัปเดตเป็นกฎหมายปัจจุบัน) ---
     const dedPersonal = 60000;
     const dedSpouse = deductions.spouse ? 60000 : 0;
     const dedParents = deductions.parentsCount * 30000;
     const dedChildren = (deductions.childrenOld * 30000) + (deductions.childrenNew * 60000);
-    const dedSocial = Math.min(deductions.socialSecurity, 6300);
+    
+    // ประกันสังคมอัปเดตกลับมาเป็นฐาน 9,000 บาท (จากเดิมโควิด 6,300)
+    const dedSocial = Math.min(deductions.socialSecurity, 9000);
     const dedLifeHealth = Math.min(deductions.lifeInsurance + deductions.healthInsurance, 100000);
     
     const investLimit = totalIncome * 0.3;
@@ -61,11 +64,16 @@ export default function Module2TaxSimulator({ user }) {
     let netBeforeDonation = totalIncome - totalExpense - totalDeductionBeforeDonation;
     if (netBeforeDonation < 0) netBeforeDonation = 0;
 
-    const dedDonationEdu = Math.min(deductions.donationEdu * 2, netBeforeDonation * 0.1);
+    // ✅ อัปเดต: บริจาคการศึกษา เหลือ 1 เท่าตามกฎหมายปัจจุบัน
+    const dedDonationEdu = Math.min(deductions.donationEdu, netBeforeDonation * 0.1);
     const dedDonationGeneral = Math.min(deductions.donationGeneral, (netBeforeDonation - dedDonationEdu) * 0.1);
 
     const netIncome = netBeforeDonation - dedDonationEdu - dedDonationGeneral;
 
+    // รวมยอดลดหย่อนทั้งหมดเพื่อใช้แสดงผล
+    const totalActualDeduction = totalDeductionBeforeDonation + dedDonationEdu + dedDonationGeneral;
+
+    // --- STEP 3: คำนวณภาษีแบบขั้นบันได ---
     let tax = 0;
     let tempNet = netIncome;
     const brackets = [
@@ -82,8 +90,21 @@ export default function Module2TaxSimulator({ user }) {
     }
 
     setResult({
-      totalIncome, totalExpense, totalDeduction: totalIncome - totalExpense - netIncome,
-      netIncome, taxToPay: tax, isCalculated: true
+      totalIncome, 
+      totalExpense, 
+      totalDeduction: totalActualDeduction,
+      netIncome, 
+      taxToPay: tax, 
+      isCalculated: true,
+      // เก็บรายละเอียดลดหย่อนแต่ละหมวดไว้โชว์
+      breakdown: {
+        personal: dedPersonal,
+        family: dedSpouse + dedParents + dedChildren,
+        insurance: dedSocial + dedLifeHealth,
+        investment: dedInvest,
+        realEstate: dedHome,
+        donation: dedDonationEdu + dedDonationGeneral
+      }
     });
     setActiveTab('summary');
   };
@@ -105,10 +126,9 @@ export default function Module2TaxSimulator({ user }) {
     setIsSubmitting(false);
   };
 
-  // เตรียมข้อมูลสำหรับ Donut Chart
   const taxData = result.isCalculated ? [
-    { name: 'เงินออม/สุทธิ', value: result.netIncome, color: '#10b981' }, // เขียว
-    { name: 'ภาษีที่จ่าย', value: result.taxToPay, color: '#ef4444' }     // แดง
+    { name: 'เงินออม/สุทธิ', value: result.netIncome, color: '#10b981' }, 
+    { name: 'ภาษีที่จ่าย', value: result.taxToPay, color: '#ef4444' }     
   ] : [];
 
   return (
@@ -170,7 +190,8 @@ export default function Module2TaxSimulator({ user }) {
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
             <h4 className="font-black text-green-600 border-b pb-2">กลุ่ม 2: ประกัน & ออม</h4>
             <Input label="ประกันชีวิต/สุขภาพ" value={deductions.lifeInsurance} onChange={(v)=>setDeductions({...deductions, lifeInsurance: v})} />
-            <Input label="ประกันสังคม (ปีนี้)" value={deductions.socialSecurity} onChange={(v)=>setDeductions({...deductions, socialSecurity: v})} />
+            {/* แก้ไขคำอธิบายวงเล็บให้ตรงปัจจุบัน */}
+            <Input label="ประกันสังคม (เพดาน 9,000)" value={deductions.socialSecurity} onChange={(v)=>setDeductions({...deductions, socialSecurity: v})} />
             <Input label="กองทุน RMF / SSF" value={deductions.rmf} onChange={(v)=>setDeductions({...deductions, rmf: v, ssf: v})} />
           </div>
 
@@ -179,7 +200,8 @@ export default function Module2TaxSimulator({ user }) {
             <h4 className="font-black text-orange-600 border-b pb-2">กลุ่ม 3-4: บริจาค & อสังหาฯ</h4>
             <Input label="ดอกเบี้ยบ้าน" value={deductions.homeLoanInterest} onChange={(v)=>setDeductions({...deductions, homeLoanInterest: v})} />
             <Input label="บริจาคทั่วไป" value={deductions.donationGeneral} onChange={(v)=>setDeductions({...deductions, donationGeneral: v})} />
-            <Input label="บริจาคเพื่อการศึกษา (x2)" value={deductions.donationEdu} onChange={(v)=>setDeductions({...deductions, donationEdu: v})} />
+            {/* เปลี่ยน Label จาก x2 เป็นตามจริง */}
+            <Input label="บริจาคเพื่อการศึกษา/รพ." value={deductions.donationEdu} onChange={(v)=>setDeductions({...deductions, donationEdu: v})} />
           </div>
           <button onClick={calculateTax} className="md:col-span-3 py-5 bg-blue-600 text-white font-black rounded-3xl shadow-xl hover:bg-blue-700 active:scale-[0.98]">คำนวณภาษีสุทธิ</button>
         </div>
@@ -189,6 +211,7 @@ export default function Module2TaxSimulator({ user }) {
       {activeTab === 'summary' && result.isCalculated && (
         <div className="space-y-6 animate-fadeIn">
           
+          {/* Header ภาษี */}
           <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
               <div className="text-center md:text-left">
@@ -204,9 +227,29 @@ export default function Module2TaxSimulator({ user }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <SummaryCard label="รวมรายได้" value={result.totalIncome} color="slate" />
+            <SummaryCard label="รวมรายได้ทั้งหมด" value={result.totalIncome} color="slate" />
             <SummaryCard label="หักค่าใช้จ่าย (Auto)" value={result.totalExpense} color="red" />
-            <SummaryCard label="หักค่าลดหย่อน" value={result.totalDeduction} color="orange" />
+            <SummaryCard label="ยอดลดหย่อนที่ใช้สิทธิได้" value={result.totalDeduction} color="orange" />
+          </div>
+
+          {/* ✅ ใหม่! ตารางแจกแจงรายละเอียดลดหย่อนที่นำไปใช้คำนวณจริง */}
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
+            <h4 className="font-black text-slate-800 mb-6 flex items-center gap-2 border-b pb-4">
+              <span className="material-symbols-outlined text-orange-500">receipt_long</span>
+              รายละเอียดการหักค่าลดหย่อน (หลังผ่านเกณฑ์สรรพากร)
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+              <BreakdownItem label="ลดหย่อนส่วนตัว (พื้นฐาน)" value={result.breakdown.personal} icon="person" />
+              <BreakdownItem label="ครอบครัว (คู่สมรส, พ่อแม่, บุตร)" value={result.breakdown.family} icon="family_restroom" />
+              <BreakdownItem label="ประกัน (ชีวิต, สุขภาพ, สังคม)" value={result.breakdown.insurance} icon="health_and_safety" />
+              <BreakdownItem label="กองทุนและการลงทุน (RMF, SSF)" value={result.breakdown.investment} icon="trending_up" />
+              <BreakdownItem label="ดอกเบี้ยที่อยู่อาศัย" value={result.breakdown.realEstate} icon="home" />
+              <BreakdownItem label="เงินบริจาค (เพดานไม่เกิน 10%)" value={result.breakdown.donation} icon="volunteer_activism" />
+            </div>
+            <div className="mt-6 pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-center bg-orange-50 p-4 rounded-xl">
+              <span className="font-black text-orange-800 text-sm">รวมลดหย่อนที่ใช้สิทธิได้ทั้งหมด</span>
+              <span className="text-2xl font-black text-orange-600">฿{result.totalDeduction.toLocaleString()}</span>
+            </div>
           </div>
 
           {/* ส่วนแสดงผล Donut Chart */}
@@ -274,6 +317,7 @@ export default function Module2TaxSimulator({ user }) {
             <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-green-500/5 rounded-full blur-[100px]"></div>
           </div>
 
+          {/* ตารางขั้นบันได */}
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
             <h4 className="font-black text-slate-800 mb-6 flex items-center gap-2">
               <span className="material-symbols-outlined text-blue-600">leaderboard</span>
@@ -306,10 +350,10 @@ export default function Module2TaxSimulator({ user }) {
   );
 }
 
-// --- Component ย่อยสำหรับ Input ที่มี "บาท/ปี" และ "คน" ฝังอยู่ ---
+// --- Component ย่อย: ช่องกรอก Input ---
 function Input({ label, value, onChange, multiplier = 1 }) {
   const displayAmount = value * multiplier;
-  const isPerson = multiplier > 1; // เช็กว่าเป็นจำนวนคนหรือไม่
+  const isPerson = multiplier > 1; 
 
   return (
     <div className="space-y-1">
@@ -331,6 +375,21 @@ function Input({ label, value, onChange, multiplier = 1 }) {
           {isPerson ? `(${value.toLocaleString()} คน) ` : ""}= {displayAmount.toLocaleString()} บาทต่อปี
         </p>
       )}
+    </div>
+  );
+}
+
+// --- Component ย่อย: โชว์รายละเอียดลดหย่อนแต่ละหมวด ---
+function BreakdownItem({ label, value, icon }) {
+  return (
+    <div className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
+          <span className="material-symbols-outlined text-[18px]">{icon}</span>
+        </div>
+        <span className="text-xs font-bold text-slate-600">{label}</span>
+      </div>
+      <span className="text-sm font-black text-slate-800">฿{value.toLocaleString()}</span>
     </div>
   );
 }

@@ -13,6 +13,8 @@ import Module2TaxSimulator from './pages/Module2';
 import Module3TVMCalculator from './pages/Module3';
 import Module4RetirementPlanner from './pages/Module4';
 import Module5LifePlanner from './pages/Module5';
+// ✅ นำเข้าหน้า Admin
+import AdminDashboard from './pages/AdminDashboard';
 
 export default function App() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -35,6 +37,8 @@ export default function App() {
       case 'module3': return <Module3TVMCalculator user={user} />;
       case 'module4': return <Module4RetirementPlanner user={user} />;
       case 'module5': return <Module5LifePlanner user={user} />;
+      // ✅ เพิ่มเงื่อนไขให้แสดงหน้า Admin เมื่อ activePage เป็น 'admin'
+      case 'admin': return <AdminDashboard user={user} />;
       default: return <Dashboard user={user} />;
     }
   };
@@ -60,8 +64,9 @@ export default function App() {
       }`}>
         <Sidebar 
           activePage={activePage} 
-          setActivePage={handlePageChange} // ใช้ฟังก์ชันใหม่ที่สร้างไว้
+          setActivePage={handlePageChange} 
           onLogout={() => setUser(null)} 
+          user={user} /* ✅ เพิ่มบรรทัดนี้ เพื่อส่งข้อมูล user ไปให้ Sidebar เช็ก Role */
         />
       </div>
 
