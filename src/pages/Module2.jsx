@@ -1,40 +1,29 @@
 import React, { useState, useCallback } from 'react';
-import HistoryModal from '../components/HistoryModal'; // ✅ นำเข้า Modal ประวัติ
+import HistoryModal from '../components/HistoryModal'; 
 
 export default function Module2TaxSimulator({ user }) {
   const [activeTab, setActiveTab] = useState('income');
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false); // ✅ State เปิด/ปิดประวัติ
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  // 1. State สำหรับรายได้ 8 ประเภท (เริ่มต้นเป็น 0 เสมอ)
   const [incomes, setIncomes] = useState({
     m40_1: 0, m40_2: 0, m40_3: 0, m40_4: 0, 
     m40_5: 0, m40_6: 0, m40_7: 0, m40_8: 0
   });
 
-  // 2. State สำหรับค่าลดหย่อน
   const [deductions, setDeductions] = useState({
-    spouse: false,
-    parentsCount: 0,
-    childrenOld: 0, 
-    childrenNew: 0, 
-    lifeInsurance: 0,
-    healthInsurance: 0,
-    socialSecurity: 0,
-    rmf: 0,
-    ssf: 0,
-    pension: 0,
-    donationGeneral: 0,
-    donationEdu: 0,
-    homeLoanInterest: 0
+    spouse: false, parentsCount: 0, childrenOld: 0, childrenNew: 0, 
+    lifeInsurance: 0, healthInsurance: 0, socialSecurity: 0,
+    rmf: 0, ssf: 0, pension: 0, donationGeneral: 0, 
+    donationEdu: 0, homeLoanInterest: 0
   });
 
-  const [result, setResult] = useState({ isCalculated: false });
+  // ✅ เพิ่ม taxSteps ใน Result เพื่อเอาไปวาดตาราง
+  const [result, setResult] = useState({ isCalculated: false, taxSteps: [] });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ✅ ลอจิกการคำนวณภาษี
   const calculateTax = () => {
     // --- STEP 1: หักค่าใช้จ่าย ---
     const exp1_2 = Math.min((incomes.m40_1 + incomes.m40_2) * 0.5, 100000);
@@ -54,51 +43,53 @@ export default function Module2TaxSimulator({ user }) {
     const dedChildren = (deductions.childrenOld * 30000) + (deductions.childrenNew * 60000);
     const dedSocial = Math.min(deductions.socialSecurity, 9000);
     const dedLifeHealth = Math.min(deductions.lifeInsurance + deductions.healthInsurance, 100000);
-    
-    const investLimit = totalIncome * 0.3;
-    const dedInvest = Math.min(deductions.rmf + deductions.ssf + deductions.pension, 500000, investLimit);
+    const dedInvest = Math.min(deductions.rmf + deductions.ssf + deductions.pension, 500000, totalIncome * 0.3);
     const dedHome = Math.min(deductions.homeLoanInterest, 100000);
 
     const totalDeductionBeforeDonation = dedPersonal + dedSpouse + dedParents + dedChildren + dedSocial + dedLifeHealth + dedInvest + dedHome;
-
-    let netBeforeDonation = totalIncome - totalExpense - totalDeductionBeforeDonation;
-    if (netBeforeDonation < 0) netBeforeDonation = 0;
+    let netBeforeDonation = Math.max(0, totalIncome - totalExpense - totalDeductionBeforeDonation);
 
     const dedDonationEdu = Math.min(deductions.donationEdu, netBeforeDonation * 0.1);
     const dedDonationGeneral = Math.min(deductions.donationGeneral, (netBeforeDonation - dedDonationEdu) * 0.1);
 
     const netIncome = netBeforeDonation - dedDonationEdu - dedDonationGeneral;
-    const totalActualDeduction = totalDeductionBeforeDonation + dedDonationEdu + dedDonationGeneral;
 
-    // --- STEP 3: คำนวณภาษี ---
-    let tax = 0;
-    let tempNet = netIncome;
-    let marginalRate = 0; 
-
+    // --- STEP 3: คำนวณภาษีแบบขั้นบันไดและเก็บข้อมูลลงตาราง ---
+    let remainingNet = netIncome;
+    let totalTax = 0;
+    const steps = [];
     const brackets = [
-      { min: 0, l: 150000, r: 0 }, 
-      { min: 150000, l: 150000, r: 0.05 }, 
-      { min: 300000, l: 200000, r: 0.10 },
-      { min: 500000, l: 250000, r: 0.15 }, 
-      { min: 750000, l: 250000, r: 0.20 }, 
-      { min: 1000000, l: 1000000, r: 0.25 },
-      { min: 2000000, l: 3000000, r: 0.30 }, 
-      { min: 5000000, l: Infinity, r: 0.35 }
+      { range: '0 - 150,000', rate: 0, limit: 150000 },
+      { range: '150,001 - 300,000', rate: 5, limit: 150000 },
+      { range: '300,001 - 500,000', rate: 10, limit: 200000 },
+      { range: '500,001 - 750,000', rate: 15, limit: 250000 },
+      { range: '750,001 - 1,000,000', rate: 20, limit: 250000 },
+      { range: '1,000,001 - 2,000,000', rate: 25, limit: 1000000 },
+      { range: '2,000,001 - 5,000,000', rate: 30, limit: 3000000 },
+      { range: 'เกิน 5,000,000', rate: 35, limit: Infinity }
     ];
 
-    for (const b of brackets) {
-      if (tempNet <= 0) break;
-      const taxable = Math.min(tempNet, b.l);
-      tax += taxable * b.r;
-      if (taxable > 0) marginalRate = b.r; 
-      tempNet -= taxable;
-    }
+    brackets.forEach(b => {
+      if (remainingNet > 0) {
+        const taxableInThisBracket = Math.min(remainingNet, b.limit);
+        const taxInThisBracket = taxableInThisBracket * (b.rate / 100);
+        steps.push({ ...b, amount: taxableInThisBracket, tax: taxInThisBracket });
+        totalTax += taxInThisBracket;
+        remainingNet -= taxableInThisBracket;
+      } else {
+        steps.push({ ...b, amount: 0, tax: 0 });
+      }
+    });
 
     setResult({
-      totalIncome, totalExpense, totalDeduction: totalActualDeduction,
-      netIncome, taxToPay: tax, isCalculated: true,
-      breakdown: { personal: dedPersonal, family: dedSpouse + dedParents + dedChildren, insurance: dedSocial + dedLifeHealth, investment: dedInvest, realEstate: dedHome, donation: dedDonationEdu + dedDonationGeneral },
-      advisor: { show: tax > 0, marginalRate: marginalRate * 100, potentialSavingPer10k: 10000 * marginalRate }
+      totalIncome, totalExpense, totalDeduction: totalDeductionBeforeDonation + dedDonationEdu + dedDonationGeneral,
+      netIncome, taxToPay: totalTax, isCalculated: true,
+      taxSteps: steps, // ✅ ส่งข้อมูลไปวาดตาราง
+      advisor: { 
+        show: totalTax > 0, 
+        marginalRate: steps.findLast(s => s.amount > 0)?.rate || 0,
+        potentialSavingPer10k: 10000 * (steps.findLast(s => s.amount > 0)?.rate / 100 || 0)
+      }
     });
     setActiveTab('summary');
   };
@@ -156,95 +147,131 @@ export default function Module2TaxSimulator({ user }) {
         ))}
       </div>
 
-      {/* Tab Content: Income */}
+      {/* Tab Content: Income & Deduction (คงเดิม) */}
       {activeTab === 'income' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-4">
-            <h3 className="text-xl font-black text-slate-800 border-b pb-4">ประเภทเงินได้ 40(1) - 40(4)</h3>
+            <h3 className="text-xl font-black text-slate-800 border-b pb-4">รายได้ 40(1) - 40(4)</h3>
             <Input label="40(1) เงินเดือน/โบนัส" value={incomes.m40_1} onChange={(v)=>setIncomes({...incomes, m40_1: v})} />
             <Input label="40(2) รับเหมาแรงงาน/นายหน้า" value={incomes.m40_2} onChange={(v)=>setIncomes({...incomes, m40_2: v})} />
-            <Input label="40(3) ค่าลิขสิทธิ์/กู๊ดวิลล์" value={incomes.m40_3} onChange={(v)=>setIncomes({...incomes, m40_3: v})} />
+            <Input label="40(3) ค่าลิขสิทธิ์" value={incomes.m40_3} onChange={(v)=>setIncomes({...incomes, m40_3: v})} />
             <Input label="40(4) ดอกเบี้ย/เงินปันผล" value={incomes.m40_4} onChange={(v)=>setIncomes({...incomes, m40_4: v})} />
           </div>
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-4">
-            <h3 className="text-xl font-black text-slate-800 border-b pb-4">ประเภทเงินได้ 40(5) - 40(8)</h3>
-            <Input label="40(5) ค่าเช่าทรัพย์สิน" value={incomes.m40_5} onChange={(v)=>setIncomes({...incomes, m40_5: v})} />
-            <Input label="40(6) วิชาชีพอิสระ (แพทย์/กม.)" value={incomes.m40_6} onChange={(v)=>setIncomes({...incomes, m40_6: v})} />
+            <h3 className="text-xl font-black text-slate-800 border-b pb-4">รายได้ 40(5) - 40(8)</h3>
+            <Input label="40(5) ค่าเช่า" value={incomes.m40_5} onChange={(v)=>setIncomes({...incomes, m40_5: v})} />
+            <Input label="40(6) วิชาชีพอิสระ" value={incomes.m40_6} onChange={(v)=>setIncomes({...incomes, m40_6: v})} />
             <Input label="40(7) รับเหมา (ค่าแรง+ของ)" value={incomes.m40_7} onChange={(v)=>setIncomes({...incomes, m40_7: v})} />
             <Input label="40(8) ธุรกิจ/ขายของออนไลน์" value={incomes.m40_8} onChange={(v)=>setIncomes({...incomes, m40_8: v})} />
           </div>
-          <button onClick={() => setActiveTab('deduction')} className="md:col-span-2 py-4 bg-slate-800 text-white font-black rounded-2xl hover:bg-black transition-all shadow-lg active:scale-[0.98]">ไปขั้นตอนถัดไป: เลือกค่าลดหย่อน</button>
+          <button onClick={() => setActiveTab('deduction')} className="md:col-span-2 py-4 bg-slate-800 text-white font-black rounded-2xl hover:bg-black transition-all">ถัดไป: เลือกค่าลดหย่อน</button>
         </div>
       )}
 
-      {/* Tab Content: Deduction */}
       {activeTab === 'deduction' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fadeIn">
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
             <h4 className="font-black text-blue-600 border-b pb-2">กลุ่ม 1: ครอบครัว</h4>
             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-slate-700">คู่สมรส (ไม่มีรายได้)</span>
-              </div>
+              <span className="text-sm font-bold text-slate-700">คู่สมรส (ไม่มีรายได้)</span>
               <input type="checkbox" checked={deductions.spouse} onChange={(e)=>setDeductions({...deductions, spouse: e.target.checked})} className="w-6 h-6 accent-blue-600 cursor-pointer" />
             </div>
             <Input label="จำนวนพ่อแม่ (อายุ 60+)" value={deductions.parentsCount} onChange={(v)=>setDeductions({...deductions, parentsCount: v})} multiplier={30000} />
             <Input label="ลูก (เกิดก่อน 2561)" value={deductions.childrenOld} onChange={(v)=>setDeductions({...deductions, childrenOld: v})} multiplier={30000} />
             <Input label="ลูก (คนที่ 2+ เกิดหลัง 2561)" value={deductions.childrenNew} onChange={(v)=>setDeductions({...deductions, childrenNew: v})} multiplier={60000} />
           </div>
-
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
             <h4 className="font-black text-green-600 border-b pb-2">กลุ่ม 2: ประกัน & ออม</h4>
             <Input label="ประกันชีวิต/สุขภาพ" value={deductions.lifeInsurance} onChange={(v)=>setDeductions({...deductions, lifeInsurance: v})} />
             <Input label="ประกันสังคม" value={deductions.socialSecurity} onChange={(v)=>setDeductions({...deductions, socialSecurity: v})} />
             <Input label="กองทุน RMF / SSF" value={deductions.rmf} onChange={(v)=>setDeductions({...deductions, rmf: v})} />
           </div>
-
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
             <h4 className="font-black text-orange-600 border-b pb-2">กลุ่ม 3-4: บริจาค & อื่นๆ</h4>
             <Input label="ดอกเบี้ยบ้าน" value={deductions.homeLoanInterest} onChange={(v)=>setDeductions({...deductions, homeLoanInterest: v})} />
             <Input label="บริจาคทั่วไป" value={deductions.donationGeneral} onChange={(v)=>setDeductions({...deductions, donationGeneral: v})} />
             <Input label="บริจาคเพื่อการศึกษา" value={deductions.donationEdu} onChange={(v)=>setDeductions({...deductions, donationEdu: v})} />
           </div>
-          <button onClick={calculateTax} className="md:col-span-3 py-5 bg-blue-600 text-white font-black rounded-3xl shadow-xl hover:bg-blue-700 active:scale-[0.98]">คำนวณภาษีสุทธิ</button>
+          <button onClick={calculateTax} className="md:col-span-3 py-5 bg-blue-600 text-white font-black rounded-3xl shadow-xl hover:bg-blue-700">คำนวณภาษีสุทธิ</button>
         </div>
       )}
 
-      {/* Tab Content: Summary */}
+      {/* ✅ Tab Summary: เวอร์ชันสมบูรณ์ที่มีตารางขั้นบันได */}
       {activeTab === 'summary' && result.isCalculated && (
         <div className="space-y-6 animate-fadeIn">
+          {/* Card ใหญ่แสดงภาษีรวม */}
           <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-              <div className="text-center md:text-left">
-                <p className="text-blue-400 font-black uppercase tracking-widest text-[10px] mb-2">ภาษีที่ต้องชำระทั้งสิ้น</p>
-                <h2 className="text-6xl md:text-7xl font-black tracking-tighter">฿{result.taxToPay.toLocaleString(undefined, {minimumFractionDigits: 2})}</h2>
-              </div>
-              <button onClick={saveToSheets} disabled={isSubmitting} className="px-10 py-5 bg-blue-600 rounded-2xl font-black hover:bg-blue-500 transition-all shadow-xl flex items-center gap-3 active:scale-95">
-                <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'save'}</span>
-                {isSubmitting ? 'กำลังบันทึก...' : submitStatus || 'บันทึกแผนลงประวัติ'}
-              </button>
-            </div>
+             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+               <div className="text-center md:text-left">
+                 <p className="text-blue-400 font-black uppercase tracking-widest text-[10px] mb-2">ภาษีที่ต้องชำระทั้งสิ้น</p>
+                 <h2 className="text-6xl md:text-7xl font-black tracking-tighter">฿{result.taxToPay.toLocaleString(undefined, {minimumFractionDigits: 2})}</h2>
+               </div>
+               <button onClick={saveToSheets} disabled={isSubmitting} className="px-10 py-5 bg-blue-600 rounded-2xl font-black hover:bg-blue-500 transition-all shadow-xl flex items-center gap-3">
+                 <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'save'}</span> {submitStatus || 'บันทึกแผนลงประวัติ'}
+               </button>
+             </div>
           </div>
 
+          {/* AI Advisor Card */}
           {result.advisor.show && (
-            <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-[2px] rounded-[2.5rem] shadow-2xl">
-              <div className="bg-white rounded-[2.45rem] p-8 md:p-10 relative overflow-hidden">
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border-2 border-indigo-100 shadow-xl relative overflow-hidden">
                 <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
-                  <div className="w-24 h-24 bg-indigo-100 rounded-3xl flex items-center justify-center shrink-0 shadow-inner">
-                    <span className="material-symbols-outlined text-5xl text-indigo-600 animate-bounce">psychology</span>
+                  <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-4xl text-indigo-600 animate-bounce">psychology</span>
                   </div>
-                  <div className="flex-1 space-y-4 text-center md:text-left">
+                  <div className="flex-1 space-y-2">
                     <h3 className="text-2xl font-black text-slate-800 tracking-tight">AI Tax Advisor</h3>
                     <p className="text-slate-600 font-bold leading-relaxed">
                       "คุณ {user.name} ครับ ตอนนี้ฐานภาษีของคุณอยู่ที่ <span className="text-indigo-600 text-xl font-black">{result.advisor.marginalRate}%</span> 
-                      หากคุณหาค่าลดหย่อนเพิ่มได้ทุกๆ <span className="underline">10,000 บาท</span> คุณจะประหยัดเงินได้เพิ่มอีก 
+                      หากหาค่าลดหย่อนเพิ่มได้ทุกๆ <span className="underline">10,000 บาท</span> จะประหยัดภาษีได้อีก 
                       <span className="text-green-600 text-xl font-black ml-2">฿{result.advisor.potentialSavingPer10k.toLocaleString()}</span> เลยนะ!"
                     </p>
                   </div>
                 </div>
-              </div>
             </div>
           )}
+
+          {/* ✅ ตารางขั้นบันไดภาษี (Professional Look) */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+              <h3 className="font-black text-slate-800 flex items-center gap-2">
+                <span className="material-symbols-outlined text-blue-600">analytics</span>
+                รายละเอียดภาษีเงินได้แบบขั้นบันได
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <tr>
+                    <th className="px-6 py-4">ช่วงเงินได้สุทธิ</th>
+                    <th className="px-6 py-4">อัตราภาษี</th>
+                    <th className="px-6 py-4 text-right">เงินได้สุทธิในขั้นนี้</th>
+                    <th className="px-6 py-4 text-right">ภาษีที่คำนวณได้</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {result.taxSteps.map((step, idx) => (
+                    <tr key={idx} className={`border-b border-slate-50 transition-colors ${step.amount > 0 ? 'bg-blue-50/40' : 'opacity-40'}`}>
+                      <td className="px-6 py-4 font-bold text-slate-700">{step.range}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-lg font-black ${step.amount > 0 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>
+                          {step.rate}%
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-slate-600">฿{step.amount.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-right font-black text-slate-800">฿{step.tax.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-slate-900 text-white font-black">
+                  <tr>
+                    <td colSpan="3" className="px-6 py-5 text-right uppercase tracking-widest text-[10px]">รวมภาษีเงินได้ทั้งสิ้น</td>
+                    <td className="px-6 py-5 text-right text-xl">฿{result.taxToPay.toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <SummaryCard label="รวมรายได้ทั้งหมด" value={result.totalIncome} color="slate" />
@@ -254,19 +281,12 @@ export default function Module2TaxSimulator({ user }) {
         </div>
       )}
 
-      {/* ✅ Modal ประวัติการคำนวณ */}
-      <HistoryModal 
-        isOpen={isHistoryOpen} 
-        onClose={() => setIsHistoryOpen(false)} 
-        userId={user.id} 
-        moduleName="Module 2: Full Tax" 
-        GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} 
-      />
+      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} userId={user.id} moduleName="Module 2: Full Tax" GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} />
     </div>
   );
 }
 
-// Sub-components
+// Sub-components เหมือนเดิม ...
 function Input({ label, value, onChange, multiplier = 1 }) {
   return (
     <div className="space-y-1">
