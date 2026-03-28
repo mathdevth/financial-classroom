@@ -1,11 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label } from 'recharts';
-import HistoryModal from '../components/HistoryModal'; // ✅ นำเข้า Modal ประวัติ
+import HistoryModal from '../components/HistoryModal';
 
 export default function Module4RetirementPlanner({ user }) {
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false); // ✅ State สำหรับเปิด/ปิดหน้าต่างประวัติ
-
-  // 1. State สำหรับตัวแปร (เริ่มต้นเป็นค่ามาตรฐานเพื่อให้พิมพ์ใหม่ได้ลื่นไหล)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [planInputs, setPlanInputs] = useState({
     currentAge: 25,
     retireAge: 60,
@@ -17,6 +15,8 @@ export default function Module4RetirementPlanner({ user }) {
   const [result, setResult] = useState({
     targetFund: 0,
     monthlySavingNeeded: 0,
+    monthlyLate: 0,
+    costMultiplier: 0,
     isCalculated: false
   });
 
@@ -32,7 +32,6 @@ export default function Module4RetirementPlanner({ user }) {
     setPlanInputs({ ...planInputs, [name]: Number(sanitizedValue) });
   };
 
-  // ✅ 2. ลอจิกการคำนวณภูเขาเงินออม (Mountain Profile)
   const calculateRetirement = () => {
     const { currentAge, retireAge, lifeExpectancy, monthlyExpense, returnRate } = planInputs;
     const yearsToSave = retireAge - currentAge;
@@ -43,26 +42,33 @@ export default function Module4RetirementPlanner({ user }) {
       return;
     }
 
-    const targetFund = monthlyExpense * 12 * yearsInRetirement;
     const r = returnRate / 100;
     const i = r / 12;
-    const n = yearsToSave * 12;
-    let monthlySaving = i === 0 ? targetFund / n : (targetFund * i) / (Math.pow(1 + i, n) - 1);
+
+    const monthsInRetirement = yearsInRetirement * 12;
+    const targetFund = i === 0 
+      ? monthlyExpense * monthsInRetirement 
+      : (monthlyExpense * (1 - Math.pow(1 + i, -monthsInRetirement))) / i;
+
+    const n_acc = yearsToSave * 12;
+    const monthlySaving = i === 0 ? targetFund / n_acc : (targetFund * i) / (Math.pow(1 + i, n_acc) - 1);
+
+    const yearsLate = Math.max(1, yearsToSave - 10);
+    const n_late = yearsLate * 12;
+    const monthlyLate = i === 0 ? targetFund / n_late : (targetFund * i) / (Math.pow(1 + i, n_late) - 1);
+    const costMultiplier = (monthlyLate / monthlySaving).toFixed(1);
 
     let projection = [];
     let currentBalance = 0;
-    const yearlySaving = monthlySaving * 12;
-    const yearlyExpense = monthlyExpense * 12;
-
-    // Phase 1: สะสมเงิน (Mountain Climb)
+    
     for (let age = currentAge; age <= retireAge; age++) {
       projection.push({ age, fund: Math.round(currentBalance), phase: 'สะสมเงิน' });
-      currentBalance = (currentBalance + yearlySaving) * (1 + r);
+      currentBalance = (currentBalance + (monthlySaving * 12)) * (1 + r);
     }
 
-    // Phase 2: ใช้เงิน (Mountain Descent)
+    currentBalance = targetFund; 
     for (let age = retireAge + 1; age <= lifeExpectancy; age++) {
-      currentBalance = (currentBalance - yearlyExpense) * (1 + r);
+      currentBalance = (currentBalance - (monthlyExpense * 12)) * (1 + r);
       if (currentBalance < 0) currentBalance = 0;
       projection.push({ age, fund: Math.round(currentBalance), phase: 'ใช้เงิน' });
     }
@@ -71,6 +77,8 @@ export default function Module4RetirementPlanner({ user }) {
     setResult({
       targetFund,
       monthlySavingNeeded: monthlySaving,
+      monthlyLate: monthlyLate,
+      costMultiplier,
       isCalculated: true
     });
   };
@@ -82,13 +90,8 @@ export default function Module4RetirementPlanner({ user }) {
         method: "POST", mode: "no-cors",
         body: JSON.stringify({
           action: "save", userId: user.id,
-          moduleName: "Module 4: วางแผนเกษียณ",
-          // บันทึกทั้ง Input และผลลัพธ์เพื่อให้ประวัติแกะมาโชว์สวยๆ ได้
-          actionData: JSON.stringify({ 
-            ...planInputs, 
-            targetFund: result.targetFund, 
-            monthlySavingNeeded: result.monthlySavingNeeded 
-          }) 
+          moduleName: "Module 4: Retirement Mountain",
+          actionData: JSON.stringify({ ...planInputs, ...result }) 
         })
       });
       setSubmitStatus('บันทึกแผนสำเร็จ! ✅');
@@ -97,140 +100,174 @@ export default function Module4RetirementPlanner({ user }) {
     finally { setIsSubmitting(false); }
   };
 
-  const renderFormulaLogic = () => (
-    <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 space-y-4 animate-fadeIn">
-      <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest text-center">หลักการคำนวณแผนเกษียณ</p>
-      <div className="space-y-4">
-        <div className="flex flex-col items-center">
-          <div className="text-sm font-serif italic text-slate-800 bg-white px-4 py-2 rounded-xl border border-orange-100 shadow-sm">
-            Fund = Expense × 12 × Years
-          </div>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="flex items-center text-sm font-serif italic text-slate-800 bg-white px-4 py-3 rounded-xl border border-orange-100 shadow-sm">
-            <span>PMT = </span>
-            <div className="flex flex-col items-center mx-2">
-              <span className="px-2 border-b border-slate-800 pb-0.5">Fund × i</span>
-              <span className="px-2 pt-0.5 text-[12px]">(1 + i)<sup>n</sup> - 1</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans animate-fadeIn">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 md:px-10 font-sans animate-fadeIn relative overflow-hidden">
       
-      {/* Header & History Button */}
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
-        <div className="flex items-center gap-6 relative z-10">
-          <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-4xl shadow-inner shrink-0">🏖️</div>
-          <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight">Retirement Planner</h2>
-            <p className="text-slate-500 font-medium">จำลอง "ภูเขาเงินออม" เพื่อแผนเกษียณที่มีความสุข</p>
-          </div>
-        </div>
-        <button 
-          onClick={() => setIsHistoryOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm shrink-0"
-        >
-          <span className="material-symbols-outlined text-orange-500">history</span>
-          ประวัติแผนเกษียณ
-        </button>
-      </section>
+      {/* 🔮 Background Decor (Pastel Morning) */}
+      <div className="absolute top-0 right-0 w-[40rem] h-[40rem] bg-rose-100/40 rounded-full blur-[120px] -mr-48 -mt-48"></div>
+      <div className="absolute bottom-0 left-0 w-[35rem] h-[35rem] bg-fuchsia-50/60 rounded-full blur-[100px] -ml-48 -mb-48"></div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <InputField label="อายุปัจจุบัน" name="currentAge" value={planInputs.currentAge} onChange={handleInputChange} />
-              <InputField label="อายุเกษียณ" name="retireAge" value={planInputs.retireAge} onChange={handleInputChange} />
+      <div className="max-w-7xl mx-auto space-y-10 relative z-10">
+        
+        {/* Header Section */}
+        <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-white/60 backdrop-blur-2xl p-8 rounded-[3rem] border border-white shadow-xl shadow-slate-200/50">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-fuchsia-500 to-rose-500 rounded-3xl flex items-center justify-center text-white text-5xl shadow-xl shadow-fuchsia-500/20 group hover:scale-110 transition-transform duration-500">
+              <span className="material-symbols-outlined text-5xl">landscape</span>
             </div>
-            <InputField label="อายุขัยคาดหวัง" name="lifeExpectancy" value={planInputs.lifeExpectancy} onChange={handleInputChange} />
-            <InputField label="ค่าใช้จ่ายหลังเกษียณ (บาท/เดือน)" name="monthlyExpense" value={planInputs.monthlyExpense} onChange={handleInputChange} />
-            <InputField label="ผลตอบแทนที่คาดหวัง (% ต่อปี)" name="returnRate" value={planInputs.returnRate} onChange={handleInputChange} />
-
-            {renderFormulaLogic()}
-
-            <button onClick={calculateRetirement} className="w-full py-5 bg-orange-500 text-white font-black rounded-3xl shadow-xl hover:bg-orange-600 active:scale-95 transition-all text-lg">
-              วิเคราะห์ภูเขาเงินออม
-            </button>
+            <div>
+              <h2 className="text-4xl font-black text-slate-800 tracking-tight pb-4 pr-4 leading-tight">Retirement Mountain</h2>
+              <p className="text-slate-500 font-bold italic">จำลอง "เส้นทางสู่ยอดเขาเงินออม" เพื่อเกษียณในฝัน</p>
+            </div>
           </div>
-        </div>
+          <button 
+            onClick={() => setIsHistoryOpen(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 font-black rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm shrink-0"
+          >
+            <span className="material-symbols-outlined text-fuchsia-500">history</span>
+            ประวัติการบันทึก
+          </button>
+        </section>
 
-        <div className="lg:col-span-7">
-          {result.isCalculated ? (
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-orange-50 h-full flex flex-col space-y-8 animate-fadeIn">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-lg relative overflow-hidden">
-                  <p className="text-orange-400 font-black text-[10px] uppercase tracking-[0.2em] mb-1">เป้าหมายเงินก้อน</p>
-                  <h3 className="text-3xl font-black tracking-tighter">฿{result.targetFund.toLocaleString()}</h3>
-                  <span className="material-symbols-outlined absolute -right-2 -bottom-2 text-6xl opacity-10">account_balance_wallet</span>
-                </div>
-                <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100">
-                  <p className="text-orange-600 font-black text-[10px] uppercase mb-1">ต้องออมเพิ่มต่อเดือน</p>
-                  <h3 className="text-3xl font-black text-orange-700">฿{Math.ceil(result.monthlySavingNeeded).toLocaleString()}</h3>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          {/* 📥 Left Side: Input Fields */}
+          <div className="lg:col-span-5 space-y-8">
+            <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-white space-y-6">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Setup Your Journey</span>
               </div>
-
-              <div className="flex-grow w-full h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="colorFund" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="age" tick={{fontSize: 10, fontWeight: 'bold'}} />
-                    <YAxis hide />
-                    <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} formatter={(v) => `฿${v.toLocaleString()}`} />
-                    <ReferenceLine x={planInputs.retireAge} stroke="#ef4444" strokeDasharray="3 3">
-                      <Label value="จุดเกษียณ" position="top" fill="#ef4444" fontSize={10} fontWeight="bold" />
-                    </ReferenceLine>
-                    <Area type="monotone" dataKey="fund" stroke="#f97316" strokeWidth={4} fill="url(#colorFund)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <InputField label="อายุปัจจุบัน" name="currentAge" value={planInputs.currentAge} onChange={handleInputChange} icon="person" />
+                <InputField label="อายุเกษียณ" name="retireAge" value={planInputs.retireAge} onChange={handleInputChange} icon="flag" />
               </div>
+              <InputField label="อายุขัยคาดหวัง" name="lifeExpectancy" value={planInputs.lifeExpectancy} onChange={handleInputChange} icon="favorite" />
+              <InputField label="ค่าใช้จ่ายหลังเกษียณ (บาท/เดือน)" name="monthlyExpense" value={planInputs.monthlyExpense} onChange={handleInputChange} icon="payments" />
+              <InputField label="ผลตอบแทนคาดหวัง (% ต่อปี)" name="returnRate" value={planInputs.returnRate} onChange={handleInputChange} icon="trending_up" />
 
-              <button onClick={saveToGoogleSheets} disabled={isSubmitting} className="w-full py-4 bg-slate-100 hover:bg-orange-50 text-slate-700 font-black rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95">
-                <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'save_as'}</span>
-                {submitStatus || 'บันทึกแผนลงประวัติ'}
+              <button onClick={calculateRetirement} className="w-full py-6 bg-slate-900 text-white font-black rounded-3xl shadow-xl hover:bg-fuchsia-600 hover:scale-[1.02] transition-all active:scale-95 text-2xl tracking-tight flex items-center justify-center gap-4 group">
+                <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">explore</span>
+                พิชิตยอดเขาเงินออม
               </button>
             </div>
-          ) : (
-            <div className="h-full bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center font-bold">
-              <span className="material-symbols-outlined text-7xl mb-4 opacity-20">landscape</span>
-              <p>กรอกข้อมูลอายุและค่าใช้จ่าย <br/>เพื่อวิเคราะห์ภูเขาเงินออมของคุณ</p>
-            </div>
-          )}
+          </div>
+
+          {/* 🏔️ Right Side: Visualizing the Mountain */}
+          <div className="lg:col-span-7">
+            {result.isCalculated ? (
+              <div className="space-y-8 animate-fadeIn">
+                
+                {/* 💰 Target Fund Card */}
+                <div className="bg-gradient-to-br from-fuchsia-600 to-rose-600 p-12 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden group">
+                  <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-[80px]"></div>
+                  <p className="text-rose-100 font-black text-[11px] uppercase tracking-[0.4em] mb-3 opacity-80">ยอดเงินที่ต้องมี ณ วันเกษียณ</p>
+                  <h3 className="text-6xl md:text-7xl font-black tracking-tighter pb-4 pr-4 leading-tight">
+                    ฿{Math.round(result.targetFund).toLocaleString()}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-4">
+                    <span className="material-symbols-outlined text-sm">info</span>
+                    <p className="text-rose-100/80 text-[11px] font-bold italic">คำนวณเพื่อให้เงินใช้ได้ถึงอายุ {planInputs.lifeExpectancy} ปี</p>
+                  </div>
+                </div>
+
+                {/* 📊 Saving Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl flex flex-col items-center text-center group hover:scale-[1.05] transition-all duration-500">
+                    <div className="w-16 h-16 bg-emerald-50 rounded-[1.5rem] flex items-center justify-center text-emerald-600 mb-4 shadow-inner">
+                      <span className="material-symbols-outlined text-3xl">rocket_launch</span>
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">เริ่มออมวันนี้</p>
+                    <h4 className="text-3xl font-black text-slate-800">฿{Math.ceil(result.monthlySavingNeeded).toLocaleString()}</h4>
+                    <p className="text-[10px] font-bold text-emerald-500 mt-2">ประหยัดและมั่นคงกว่า</p>
+                  </div>
+                  
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl flex flex-col items-center text-center group hover:scale-[1.05] transition-all duration-500 relative overflow-hidden">
+                    <div className="absolute top-4 right-4 bg-rose-500 text-white px-3 py-1 rounded-full text-[9px] font-black shadow-lg">แพงขึ้น {result.costMultiplier} เท่า!</div>
+                    <div className="w-16 h-16 bg-rose-50 rounded-[1.5rem] flex items-center justify-center text-rose-500 mb-4 shadow-inner">
+                      <span className="material-symbols-outlined text-3xl">history_toggle_off</span>
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">เริ่มช้าไป 10 ปี</p>
+                    <h4 className="text-3xl font-black text-slate-800">฿{Math.ceil(result.monthlyLate).toLocaleString()}</h4>
+                    <p className="text-[10px] font-bold text-rose-500 mt-2">ต้องเหนื่อยเพิ่มขึ้นมหาศาล</p>
+                  </div>
+                </div>
+
+                {/* 📈 Mountain Chart Area */}
+                <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[3.5rem] shadow-2xl border border-white h-[450px]">
+                  <h4 className="font-black text-slate-800 mb-8 flex items-center gap-3">
+                    <span className="material-symbols-outlined text-fuchsia-500 text-3xl">landscape</span>
+                    วิถีภูเขาเงินออม (Accumulation & Decumulation)
+                  </h4>
+                  <ResponsiveContainer width="100%" height="70%">
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="colorMountain" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#d946ef" stopOpacity={0.6}/>
+                          <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="age" tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                      <YAxis hide />
+                      <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'black' }} formatter={(v) => `฿${v.toLocaleString()}`} />
+                      <ReferenceLine x={planInputs.retireAge} stroke="#f43f5e" strokeDasharray="5 5" strokeWidth={3}>
+                        <Label value="จุดเกษียณ" position="top" fill="#f43f5e" fontSize={12} fontWeight="black" />
+                      </ReferenceLine>
+                      <Area type="monotone" dataKey="fund" stroke="#d946ef" strokeWidth={6} fill="url(#colorMountain)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  
+                  <button onClick={saveToGoogleSheets} disabled={isSubmitting} className={`w-full mt-6 py-5 font-black rounded-[2rem] transition-all flex items-center justify-center gap-3 text-lg shadow-xl active:scale-95 ${isSubmitting ? 'bg-slate-100 text-slate-400' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-200'}`}>
+                    <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'cloud_done'}</span>
+                    {submitStatus || 'บันทึกเป้าหมายภูเขาเงินออม'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* 🏔️ Placeholder State */
+              <div className="h-full min-h-[500px] bg-white rounded-[3.5rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center p-12 text-slate-300 text-center space-y-6">
+                <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center animate-bounce">
+                   <span className="material-symbols-outlined text-7xl opacity-30">landscape</span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-2xl font-black uppercase tracking-widest text-slate-400">Ready to Climb?</p>
+                  <p className="font-bold max-w-xs mx-auto text-slate-300 leading-relaxed">ระบุแผนการใช้ชีวิตของคุณทางด้านซ้าย <br/>เพื่อร่างวิถีภูเขาเงินออมส่วนบุคคล</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ✅ หน้าต่างแสดงประวัติ (History Modal) */}
       <HistoryModal 
         isOpen={isHistoryOpen} 
         onClose={() => setIsHistoryOpen(false)} 
         userId={user.id} 
-        moduleName="Module 4: วางแผนเกษียณ" 
+        moduleName="Module 4: Retirement Mountain" 
         GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} 
       />
     </div>
   );
 }
 
-function InputField({ label, name, value, onChange }) {
+function InputField({ label, name, value, onChange, icon }) {
   return (
-    <div className="space-y-1">
-      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
-      <input 
-        type="text" name={name} value={value === 0 ? '' : value} onChange={onChange}
-        className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none font-black text-slate-700 text-lg shadow-inner transition-all"
-        placeholder="0"
-      />
-      <p className="text-[10px] font-black text-orange-500 text-right mr-1">= {Number(value).toLocaleString()}</p>
+    <div className="space-y-1.5 pb-2 pr-4">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3 block">{label}</label>
+      <div className="relative flex items-center group">
+        <div className="absolute left-4 w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-focus-within:bg-fuchsia-50 group-focus-within:text-fuchsia-500 transition-all duration-300">
+          <span className="material-symbols-outlined text-[20px]">{icon}</span>
+        </div>
+        <input 
+          type="text" 
+          name={name} 
+          value={value === 0 ? '' : value} 
+          onChange={onChange} 
+          className="w-full pl-16 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] focus:ring-4 focus:ring-fuchsia-500/10 focus:bg-white focus:border-fuchsia-200 outline-none font-black text-slate-800 text-lg transition-all shadow-inner placeholder:text-slate-200" 
+          placeholder="0" 
+        />
+      </div>
     </div>
   );
 }

@@ -2,30 +2,23 @@ import React, { useState } from 'react';
 
 export default function Login({ onLogin }) {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  
-  // States สำหรับเก็บข้อมูลฟอร์ม
   const [studentId, setStudentId] = useState('');
   const [studentName, setStudentName] = useState('');
   const [password, setPassword] = useState('');
-  const [school, setSchool] = useState('โรงเรียนวังโพรงพิทยาคม'); // ค่าเริ่มต้น
-  const [inviteCode, setInviteCode] = useState(''); // รหัสลับสำหรับครู
-  
+  const [school, setSchool] = useState('โรงเรียนวังโพรงพิทยาคม');
+  const [inviteCode, setInviteCode] = useState('');
   const [isAccepted, setIsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ⚠️ อย่าลืมใส่ URL ของคุณครูตรงนี้นะครับ
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isAccepted) return alert('กรุณายอมรับนโยบาย PDPA ก่อนครับ');
-    
     setLoading(true);
-
     try {
       if (isRegisterMode) {
-        // --- โหมดลงทะเบียน (ส่งแบบ POST) ---
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
+        await fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
           body: JSON.stringify({
@@ -33,23 +26,17 @@ export default function Login({ onLogin }) {
             userId: studentId,
             name: studentName,
             password: password,
-            school: school,       // ✅ ส่งชื่อโรงเรียน
-            inviteCode: inviteCode // ✅ ส่งรหัสเชิญครู
+            school: school,
+            inviteCode: inviteCode
           })
         });
-        
-        // no-cors จะอ่าน response ตรงๆ ไม่ได้ เลยถือว่าส่งสำเร็จและให้เด้ง alert
         alert('ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบอีกครั้งครับ');
         setIsRegisterMode(false);
-        setPassword(''); // ล้างรหัสผ่านเพื่อความปลอดภัย
-        
+        setPassword('');
       } else {
-        // --- โหมด LOGIN (ส่งแบบ GET เพื่ออ่านผลลัพธ์) ---
         const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=login&userId=${studentId}&password=${password}`);
         const result = await response.json();
-
         if (result.status === "success") {
-          // ✅ ส่งข้อมูลทั้งหมด (รวม school และ role) กลับไปที่ App.jsx
           onLogin({ 
             id: studentId, 
             name: result.name,
@@ -57,101 +44,116 @@ export default function Login({ onLogin }) {
             role: result.role
           });
         } else {
-          alert(result.message); // จะเด้งบอกว่า "รหัสผ่านไม่ถูกต้อง" 
+          alert(result.message);
         }
       }
     } catch (error) {
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่ครับ');
-      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200">
+    <div className="relative min-h-screen flex items-center justify-center bg-slate-50 overflow-hidden p-4 md:p-0 font-sans">
+      
+      {/* ☁️ Soft Pastel Blobs (พื้นหลังแบบละมุน) */}
+      <div aria-hidden className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+        <div className="absolute -top-32 -left-32 w-[40rem] h-[40rem] bg-blue-100/50 rounded-full blur-[120px] animate-blob1" />
+        <div className="absolute top-1/2 left-1/2 w-[35rem] h-[35rem] bg-cyan-50/60 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 animate-blob2" />
+        <div className="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-emerald-50/50 rounded-full blur-[120px] animate-blob3" />
+      </div>
+
+      {/* 🏰 Snowy Glass Card */}
+      <div className="relative z-10 w-full max-w-md mx-auto rounded-[3.5rem] border border-white bg-white/80 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] px-6 py-10 md:px-12 md:py-14 flex flex-col items-center">
         
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className={`w-20 h-20 mx-auto rounded-3xl flex items-center justify-center text-white text-4xl mb-4 transition-all duration-500 ${isRegisterMode ? 'bg-green-500 shadow-green-200' : 'bg-blue-600 shadow-blue-200'} shadow-xl`}>
-            <span className="material-symbols-outlined text-4xl">{isRegisterMode ? 'person_add' : 'lock'}</span>
+        {/* Header Section */}
+        <div className="text-center mb-10 select-none w-full">
+          <div className={`w-20 h-20 mx-auto rounded-[2rem] flex items-center justify-center text-white text-4xl mb-6 transition-all duration-500 shadow-lg ${isRegisterMode ? 'bg-gradient-to-br from-emerald-400 to-cyan-500' : 'bg-gradient-to-br from-blue-600 to-indigo-700'}`}>
+            <span className="material-symbols-outlined text-4xl">{isRegisterMode ? 'person_add' : 'fingerprint'}</span>
           </div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight">The Financial Classroom</h2>
-          <p className="text-slate-400 font-bold text-xs uppercase mt-1 tracking-widest">
-            {isRegisterMode ? 'สร้างบัญชีใหม่เพื่อเริ่มเรียน' : 'เข้าสู่ระบบเพื่อเรียนรู้ต่อ'}
+          <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-800 pb-2 pr-4 leading-tight">
+            The Financial <br/> Classroom
+          </h2>
+          <p className="text-slate-400 font-bold text-[10px] uppercase mt-2 tracking-[0.3em]">
+            {isRegisterMode ? 'Create New Account' : 'Welcome Back Student'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          
-          <div className="space-y-1">
+        <form onSubmit={handleSubmit} className="w-full space-y-5">
+          <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">รหัสประจำตัว / เบอร์โทร</label>
-            <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold transition-all" placeholder="กรอก ID ของคุณ" required />
+            <div className="relative flex items-center group">
+               <span className="material-symbols-outlined absolute left-4 text-slate-300 group-focus-within:text-blue-500 transition-colors">person</span>
+               <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:bg-white outline-none font-bold text-slate-700 placeholder:text-slate-300 transition-all shadow-inner" placeholder="กรอก ID ของคุณ" required />
+            </div>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">รหัสผ่าน</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold transition-all" placeholder="••••••••" required />
+            <div className="relative flex items-center group">
+               <span className="material-symbols-outlined absolute left-4 text-slate-300 group-focus-within:text-blue-500 transition-colors">lock</span>
+               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:bg-white outline-none font-bold text-slate-700 placeholder:text-slate-300 transition-all shadow-inner" placeholder="••••••••" required />
+            </div>
           </div>
 
-          {/* ฟิลด์เพิ่มเติมเฉพาะตอนลงทะเบียน */}
+          {/* Registration Fields */}
           {isRegisterMode && (
-            <div className="space-y-4 animate-fadeIn border-t border-slate-100 pt-4 mt-2">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ชื่อ - นามสกุล</label>
-                <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none font-bold transition-all" placeholder="เช่น เด็กชายสมชาย มั่งคั่ง" required />
-              </div>
-              
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">โรงเรียน / สถาบัน</label>
-                <input type="text" value={school} onChange={(e) => setSchool(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none font-bold transition-all" required />
-              </div>
-
-              {/* ช่องลับสำหรับครู */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-indigo-400 uppercase ml-2 flex items-center gap-1 tracking-widest">
-                  <span className="material-symbols-outlined text-[14px]">key</span> รหัสเชิญ (เฉพาะครู)
-                </label>
-                <input 
-                  type="text" 
-                  value={inviteCode} 
-                  onChange={(e) => setInviteCode(e.target.value)} 
-                  className="w-full px-5 py-3 bg-indigo-50/50 border border-indigo-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-indigo-700 text-sm placeholder:text-indigo-200 transition-all" 
-                  placeholder="นักเรียนให้เว้นว่างไว้" 
-                />
-              </div>
+            <div className="space-y-5 animate-fadeIn border-t border-slate-50 pt-6 mt-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ชื่อ - นามสกุล</label>
+                  <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-slate-700 transition-all" placeholder="ชื่อ-นามสกุล" required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">โรงเรียน / สถาบัน</label>
+                  <input type="text" value={school} onChange={(e) => setSchool(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-slate-700 transition-all" required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-cyan-500 uppercase ml-2 tracking-widest flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">key</span> รหัสเชิญครู (ถ้ามี)
+                  </label>
+                  <input type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} className="w-full px-6 py-3 bg-cyan-50/50 border border-cyan-100 rounded-2xl focus:ring-4 focus:ring-cyan-500/10 outline-none font-bold text-cyan-800 transition-all" placeholder="นักเรียนเว้นว่างไว้" />
+                </div>
             </div>
           )}
 
-          {/* ข้อตกลง PDPA */}
-          <div className={`flex items-start gap-3 p-4 rounded-2xl border transition-colors mt-2 ${isAccepted ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100'}`}>
-            <input type="checkbox" checked={isAccepted} onChange={(e) => setIsAccepted(e.target.checked)} className="mt-1 w-5 h-5 text-blue-600 rounded cursor-pointer" />
-            <label className="text-[10px] text-slate-500 font-bold leading-relaxed cursor-pointer" onClick={() => setIsAccepted(!isAccepted)}>
-              ยินยอมให้ระบบจัดเก็บข้อมูลส่วนบุคคล (PDPA) เพื่อใช้ในการบันทึกคะแนน วิเคราะห์ผลการเรียน และออกเกียรติบัตร
+          {/* PDPA Agreement */}
+          <div className={`flex items-start gap-3 p-4 rounded-2xl border transition-all mt-4 ${isAccepted ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
+            <input type="checkbox" checked={isAccepted} onChange={(e) => setIsAccepted(e.target.checked)} className="mt-1 w-5 h-5 text-blue-600 rounded-lg cursor-pointer accent-blue-600" />
+            <label className="text-[11px] text-slate-500 font-bold leading-relaxed cursor-pointer select-none" onClick={() => setIsAccepted(!isAccepted)}>
+              ยินยอมให้นำข้อมูลส่วนบุคคล (PDPA) ไปใช้ในการบันทึกคะแนนและออกเกียรติบัตรวิชาการ
             </label>
           </div>
 
-          <button type="submit" disabled={loading} className={`w-full py-5 text-white font-black rounded-2xl shadow-xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 ${loading ? 'bg-slate-400 cursor-not-allowed' : (isRegisterMode ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700')}`}>
-            {loading && <span className="material-symbols-outlined animate-spin text-xl">sync</span>}
-            {loading ? 'กำลังประมวลผล...' : (isRegisterMode ? 'ยืนยันลงทะเบียน' : 'เข้าสู่ห้องเรียน')}
+          <button type="submit" disabled={loading} className={`w-full py-5 text-white font-black rounded-3xl shadow-xl transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 text-lg bg-gradient-to-r from-blue-600 to-indigo-700 hover:shadow-blue-200/50 ${loading ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'}`}>
+            {loading ? <span className="material-symbols-outlined animate-spin">sync</span> : (isRegisterMode ? 'ยืนยันลงทะเบียน' : 'เข้าสู่ห้องเรียน')}
           </button>
         </form>
 
-        <div className="mt-8 text-center border-t border-slate-100 pt-6">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">หรือ</p>
+        <div className="mt-10 text-center border-t border-slate-100 pt-8 w-full">
           <button 
             type="button"
             onClick={() => {
               setIsRegisterMode(!isRegisterMode);
-              setPassword(''); // ล้างรหัสผ่านทุกครั้งที่สลับหน้า
+              setPassword('');
             }} 
-            className="w-full py-4 text-sm font-black text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all border border-slate-200 active:scale-95"
+            className="w-full py-4 text-sm font-black text-slate-500 bg-slate-100 hover:bg-slate-200 hover:text-slate-800 rounded-2xl transition-all active:scale-95"
           >
             {isRegisterMode ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? ลงทะเบียนฟรี'}
           </button>
         </div>
       </div>
+
+      <style>{`
+        @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-20px, 40px) scale(1.1);} }
+        @keyframes blob2 { 0%,100%{transform:translate(-50%,-50%) scale(1.1);} 50%{transform:translate(-52%, -48%) scale(1);} }
+        @keyframes blob3 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(30px, -20px) scale(1.05);} }
+        .animate-blob1 { animation: blob1 15s ease-in-out infinite alternate; }
+        .animate-blob2 { animation: blob2 18s ease-in-out infinite alternate; }
+        .animate-blob3 { animation: blob3 12s ease-in-out infinite alternate; }
+        .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
     </div>
   );
 }

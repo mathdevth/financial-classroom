@@ -1,17 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import HistoryModal from '../components/HistoryModal'; // ✅ นำเข้า Modal ประวัติ
+import HistoryModal from '../components/HistoryModal';
 
 export default function Module3TVMCalculator({ user }) {
   const [calcType, setCalcType] = useState('FV_SINGLE');
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false); // ✅ State เปิด/ปิดประวัติ
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
-  // 1. State สำหรับตัวแปร (เริ่มต้นค่าใหม่เสมอ)
   const [inputs, setInputs] = useState({
     amount: 0,
     rate: 5,
     years: 10,
-    everyXMonths: 1 // ✅ คิดดอกเบี้ย/ออม ทุกๆกี่เดือน (1=รายเดือน, 12=รายปี)
+    everyXMonths: 1 
   });
 
   const [result, setResult] = useState({
@@ -26,18 +25,16 @@ export default function Module3TVMCalculator({ user }) {
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ✅ คำนวณจำนวนงวด (n และ k) แบบ Real-time เพื่อโชว์ใน UI
   const k = inputs.everyXMonths > 0 ? 12 / inputs.everyXMonths : 12;
   const n_total = inputs.years * k;
 
-  // ✅ ลอจิกการคำนวณ TVM
   const calculateTVM = () => {
     const r = inputs.rate / 100;
     const interval = inputs.everyXMonths > 0 ? inputs.everyXMonths : 1;
-    const k_val = 12 / interval; // จำนวนงวดต่อปี
+    const k_val = 12 / interval;
     const p = inputs.amount;
-    const i = r / k_val; // ดอกเบี้ยต่องวด
-    const n = inputs.years * k_val; // จำนวนงวดทั้งหมด
+    const i = r / k_val;
+    const n = inputs.years * k_val;
 
     if (n <= 0) return;
 
@@ -98,141 +95,183 @@ export default function Module3TVMCalculator({ user }) {
   };
 
   const renderVisualFormula = () => {
-    const style = "flex items-center justify-center gap-2 text-xl md:text-2xl font-serif italic text-slate-800 py-4";
-    const frac = "flex flex-col items-center mx-1 text-base md:text-lg";
-    const line = "w-full h-[1.5px] bg-slate-800 my-0.5";
-
-    if (calcType === 'FV_SINGLE') return <div className={style}><span>FV = PV (1 + i)<sup className="text-xs">n</sup></span></div>;
-    if (calcType === 'PV_SINGLE') return <div className={style}><span>PV = </span><div className={frac}><span>FV</span><div className={line}></div><span>(1 + i)<sup className="text-xs">n</sup></span></div></div>;
-    if (calcType === 'FVA_ORD') return <div className={style}><span>FVA = PMT × </span><div className={frac}><span>(1 + i)<sup className="text-xs">n</sup> - 1</span><div className={line}></div><span>i</span></div></div>;
-    return <div className={style}><span>FVA = PMT × </span><div className={frac}><span>(1 + i)<sup className="text-xs">n</sup> - 1</span><div className={line}></div><span>i</span></div><span> × (1 + i)</span></div>;
+    const style = "flex items-center justify-center gap-2 text-xl font-black italic text-emerald-200 py-2";
+    if (calcType === 'FV_SINGLE') return <div className={style}>FV = PV (1 + i)ⁿ</div>;
+    if (calcType === 'PV_SINGLE') return <div className={style}>PV = FV / (1 + i)ⁿ</div>;
+    return <div className={style}>FVA = PMT × [((1+i)ⁿ - 1) / i]</div>;
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-fadeIn">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 md:px-10 font-sans animate-fadeIn relative overflow-hidden">
       
-      {/* Header & History Button */}
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">
-            <span className="material-symbols-outlined text-4xl">functions</span>
-          </div>
-          <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight">Time Value of Money</h2>
-            <p className="text-slate-500 font-medium italic">คำนวณและจำลองมูลค่าเงินตามงวดเวลา</p>
-          </div>
-        </div>
-        <button 
-          onClick={() => setIsHistoryOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm shrink-0"
-        >
-          <span className="material-symbols-outlined text-blue-600">history</span>
-          ประวัติการคำนวณ
-        </button>
-      </section>
+      {/* 🔮 Background Decor (Green Wealth Vibe) */}
+      <div className="absolute top-0 right-0 w-[45rem] h-[45rem] bg-emerald-100/40 rounded-full blur-[120px] -mr-48 -mt-48"></div>
+      <div className="absolute bottom-0 left-0 w-[35rem] h-[35rem] bg-blue-50/60 rounded-full blur-[100px] -ml-48 -mb-48"></div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">โหมดการคำนวณ</label>
-              <select value={calcType} onChange={(e) => { setCalcType(e.target.value); setResult({ ...result, isCalculated: false }); }} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="FV_SINGLE">ฝากก้อนเดียว (Future Value)</option>
-                <option value="PV_SINGLE">หาเงินต้น (Present Value)</option>
-                <option value="FVA_ORD">ออมรายงวด (Ordinary Annuity)</option>
-                <option value="FVA_DUE">ออมรายงวด ต้นงวด (Annuity Due)</option>
-              </select>
+      <div className="max-w-7xl mx-auto space-y-8 relative z-10">
+        
+        {/* Header Section */}
+        <section className="bg-white/60 backdrop-blur-2xl p-8 rounded-[3rem] border border-white shadow-xl shadow-slate-200/50 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl flex items-center justify-center text-white text-5xl shadow-xl shadow-emerald-500/20 group hover:scale-110 transition-transform duration-500">
+              <span className="material-symbols-outlined text-5xl">speed</span>
             </div>
-
-            {/* ส่วนสรุปตัวแปร Logic จำนวนงวด */}
-            <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-2">
-              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest text-center">สรุปตัวแปรจากการตั้งค่า</p>
-              {renderVisualFormula()}
-              <div className="pt-3 border-t border-blue-200 grid grid-cols-2 gap-4">
-                <div className="text-center">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">งวดต่อปี (k)</p>
-                  <p className="text-lg font-black text-blue-600">{k.toFixed(2)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">รวมจำนวนงวด (n)</p>
-                  <p className="text-lg font-black text-blue-600">{n_total.toFixed(0)}</p>
-                </div>
-              </div>
+            <div>
+              <h2 className="text-4xl font-black text-slate-800 tracking-tight pb-2 pr-4 leading-tight">Wealth Simulator</h2>
+              <p className="text-slate-500 font-bold italic">จำลองพลังดอกเบี้ยทบต้นและมูลค่าเงินตามเวลา</p>
             </div>
+          </div>
+          <button 
+            onClick={() => setIsHistoryOpen(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 font-black rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-emerald-500">history</span> 
+            ดูประวัติการจำลอง
+          </button>
+        </section>
 
-            <div className="space-y-4">
-              <InputField label={calcType === 'PV_SINGLE' ? "เป้าหมายเงินในอนาคต (FV)" : "จำนวนเงิน (PV หรือ PMT)"} name="amount" value={inputs.amount} onChange={handleInputChange} icon="payments" />
-              <InputField label="ดอกเบี้ยต่อปี (%)" name="rate" value={inputs.rate} onChange={handleInputChange} icon="percent" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* 📥 Input Side */}
+          <div className="lg:col-span-5 space-y-8">
+            <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-white space-y-8 text-slate-800">
               
-              <div className="grid grid-cols-2 gap-4">
-                <InputField label="ระยะเวลา (ปี)" name="years" value={inputs.years} onChange={handleInputChange} icon="calendar_month" />
-                <InputField label="คิดดอกเบี้ยทุกๆ (กี่เดือน)" name="everyXMonths" value={inputs.everyXMonths} onChange={handleInputChange} icon="schedule" />
-              </div>
-            </div>
-
-            <button onClick={calculateTVM} className="w-full py-5 bg-blue-600 text-white font-black rounded-3xl shadow-xl hover:bg-blue-700 active:scale-95 transition-all text-lg">คำนวณผลลัพธ์</button>
-          </div>
-        </div>
-
-        <div className="lg:col-span-7">
-          {result.isCalculated ? (
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-blue-50 h-full flex flex-col space-y-8 animate-fadeIn">
-              <div className="bg-slate-900 p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden">
-                <p className="text-blue-400 font-black text-[10px] uppercase tracking-[0.2em] mb-1">ผลลัพธ์ที่ {n_total.toFixed(0)} งวด</p>
-                <h3 className="text-5xl font-black tracking-tighter">฿{result.futureValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-                <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl opacity-10 rotate-12">rocket_launch</span>
-              </div>
-
-              <div className="flex-grow w-full h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="label" tick={{fontSize: 10, fontWeight: 'bold'}} />
-                    <YAxis hide />
-                    <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} formatter={(v) => `฿${v.toLocaleString()}`} />
-                    <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={4} fill="#dbeafe" />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] ml-3">โหมดการคำนวณ</label>
+                <div className="relative group">
+                  <select 
+                    value={calcType} 
+                    onChange={(e) => { setCalcType(e.target.value); setResult({ ...result, isCalculated: false }); }} 
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all appearance-none cursor-pointer pr-12 shadow-inner"
+                  >
+                    <option value="FV_SINGLE">💰 เงินก้อนเดียว (Future Value)</option>
+                    <option value="PV_SINGLE">🎯 หาเงินต้นที่ต้องใช้ (Present Value)</option>
+                    <option value="FVA_ORD">📈 ออมรายงวด (Ordinary Annuity)</option>
+                    <option value="FVA_DUE">🚀 ออมรายงวด (ต้นงวด)</option>
+                  </select>
+                  <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-500 transition-transform group-hover:translate-y-[-30%]">
+                    <span className="material-symbols-outlined font-black">expand_more</span>
+                  </div>
+                </div>
               </div>
 
-              <button onClick={saveToGoogleSheets} disabled={isSubmitting} className="w-full py-4 bg-slate-100 hover:bg-blue-50 text-slate-700 font-black rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95">
-                <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'save'}</span>
-                {submitStatus || 'บันทึกข้อมูลลงประวัติ'}
+              {/* Formula & Metadata Box */}
+              <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest text-center mb-4 opacity-70">Mathematical Model</p>
+                {renderVisualFormula()}
+                <div className="pt-6 mt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">งวดต่อปี (k)</p>
+                    <p className="text-2xl font-black text-white">{k.toFixed(2)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">รวมทั้งสิ้น (n)</p>
+                    <p className="text-2xl font-black text-white">{n_total.toFixed(0)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <InputField label={calcType === 'PV_SINGLE' ? "เป้าหมายเงินในอนาคต (FV)" : "จำนวนเงิน (PV หรือ PMT)"} name="amount" value={inputs.amount} onChange={handleInputChange} icon="payments" />
+                <InputField label="ดอกเบี้ยต่อปี (%)" name="rate" value={inputs.rate} onChange={handleInputChange} icon="percent" />
+                <div className="grid grid-cols-2 gap-6">
+                  <InputField label="ระยะเวลา (ปี)" name="years" value={inputs.years} onChange={handleInputChange} icon="calendar_month" />
+                  <InputField label="คิดดอกทุกๆ (ด.)" name="everyXMonths" value={inputs.everyXMonths} onChange={handleInputChange} icon="schedule" />
+                </div>
+              </div>
+
+              <button onClick={calculateTVM} className="w-full py-6 bg-slate-900 text-white font-black rounded-3xl shadow-xl hover:bg-emerald-600 hover:scale-[1.02] transition-all active:scale-95 text-2xl flex items-center justify-center gap-4 group">
+                 <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">rocket_launch</span>
+                 รันแบบจำลองความมั่งคั่ง
               </button>
             </div>
-          ) : (
-            <div className="h-full bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-12 text-slate-400 text-center font-bold">
-              <span className="material-symbols-outlined text-7xl mb-4 opacity-20">insights</span>
-              <p>ระบุจำนวนปี และ ความถี่ (กี่เดือนต่องวด) <br/>เพื่อดูการคำนวณแบบละเอียด</p>
-            </div>
-          )}
+          </div>
+
+          {/* 🏔️ Result Side */}
+          <div className="lg:col-span-7">
+            {result.isCalculated ? (
+              <div className="space-y-8 animate-fadeIn">
+                
+                {/* 💰 Hero Result Card */}
+                <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-12 rounded-[4rem] text-white shadow-2xl relative overflow-hidden group">
+                  <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-[80px]"></div>
+                  <p className="text-emerald-100 font-black text-[11px] uppercase tracking-[0.4em] mb-3 opacity-80">
+                    {calcType === 'PV_SINGLE' ? 'เงินต้นที่คุณต้องเริ่มออม' : `มูลค่าในอนาคตเมื่อครบ ${inputs.years} ปี`}
+                  </p>
+                  <h3 className="text-6xl md:text-7xl font-black tracking-tighter pb-4 pr-12 leading-tight">
+                    ฿{result.futureValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-4 px-4 py-2 bg-white/10 rounded-full w-fit backdrop-blur-md border border-white/10">
+                    <span className="material-symbols-outlined text-sm">auto_graph</span>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-emerald-50">Wealth Compound Active</p>
+                  </div>
+                </div>
+
+                {/* 📈 Chart Area */}
+                <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[3.5rem] shadow-2xl border border-white h-[480px] flex flex-col">
+                  <h4 className="font-black text-slate-800 mb-8 flex items-center gap-3">
+                    <span className="material-symbols-outlined text-emerald-500 text-3xl">analytics</span>
+                    วิถีการเติบโตของเงินทุน (Projection)
+                  </h4>
+                  <ResponsiveContainer width="100%" height="75%">
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="label" tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                      <YAxis hide />
+                      <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'black' }} formatter={(v) => `฿${v.toLocaleString()}`} />
+                      <Area type="monotone" dataKey="value" stroke="#059669" strokeWidth={6} fill="url(#colorValue)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  
+                  <button onClick={saveToGoogleSheets} disabled={isSubmitting} className={`w-full mt-6 py-5 font-black rounded-[2rem] transition-all flex items-center justify-center gap-3 text-lg shadow-xl active:scale-95 ${isSubmitting ? 'bg-slate-100 text-slate-400' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'}`}>
+                    <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'cloud_done'}</span>
+                    {submitStatus || 'บันทึกแผนความมั่งคั่งลงคลังข้อมูล'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ⏳ Placeholder State */
+              <div className="h-full min-h-[550px] bg-white rounded-[3.5rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center p-12 text-slate-300 text-center space-y-6">
+                <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center animate-bounce">
+                   <span className="material-symbols-outlined text-7xl opacity-30">account_balance_wallet</span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-2xl font-black uppercase tracking-widest text-slate-400">Simulation Ready</p>
+                  <p className="font-bold max-w-xs mx-auto text-slate-300 leading-relaxed">ระบุตัวแปรด้านซ้าย <br/>เพื่อสร้างกราฟเส้นทางการเงินของคุณ</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ✅ Modal ประวัติการคำนวณ */}
-      <HistoryModal 
-        isOpen={isHistoryOpen} 
-        onClose={() => setIsHistoryOpen(false)} 
-        userId={user.id} 
-        moduleName="Module 3: TVM Calculator" 
-        GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} 
-      />
+      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} userId={user.id} moduleName="Module 3: TVM Calculator" GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} />
     </div>
   );
 }
 
+// ✅ InputField Component (Refined for Snowy Theme)
 function InputField({ label, name, value, onChange, icon }) {
   return (
-    <div className="space-y-1">
-      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
-      <div className="relative flex items-center">
-        <span className="material-symbols-outlined absolute left-4 text-slate-400">{icon}</span>
+    <div className="space-y-1.5 pb-2 pr-4">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3 block">{label}</label>
+      <div className="relative flex items-center group">
+        <div className="absolute left-4 w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-focus-within:bg-emerald-50 group-focus-within:text-emerald-500 transition-all duration-300">
+          <span className="material-symbols-outlined text-[20px]">{icon}</span>
+        </div>
         <input 
           type="text" 
           name={name} 
           value={value === 0 ? '' : value} 
           onChange={onChange} 
-          className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-black text-slate-700 text-lg shadow-inner" 
+          className="w-full pl-16 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] focus:ring-4 focus:ring-emerald-500/10 focus:bg-white focus:border-emerald-200 outline-none font-black text-slate-800 text-lg transition-all shadow-inner placeholder:text-slate-200" 
           placeholder="0" 
         />
       </div>

@@ -1,60 +1,45 @@
 import React, { useState } from 'react';
-import InfoModal from './InfoModal'; // นำเข้าตัว Modal ที่เราเพิ่งสร้าง
+import InfoModal from './InfoModal';
 
-// ✅ ปรับรับพารามิเตอร์ { totalViews } จาก App.jsx
-export default function Footer({ totalViews = 0 }) { 
-  const [modalType, setModalType] = useState(null); // ควบคุมว่าจะเปิดหน้าไหน
+export default function Footer({ totalViews = 0 }) {
+  const [modalType, setModalType] = useState(null);
 
-  // ข้อมูลเนื้อหาสำหรับแต่ละปุ่ม (คงเดิม ห้ามลบ)
   const infoContent = {
     privacy: (
       <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
-        <p className="font-bold text-slate-800">1. การเก็บรวบรวมข้อมูล</p>
-        <p>เราจัดเก็บเพียง รหัสนักเรียน และ ชื่อ-นามสกุล ที่คุณกรอก เพื่อใช้ในการบันทึกคะแนนและติดตามความก้าวหน้าทางการเรียนเท่านั้น</p>
-        <p className="font-bold text-slate-800">2. การใช้งานข้อมูล</p>
-        <p>ข้อมูลทั้งหมดจะถูกเก็บเป็นความลับในระบบ Google Sheets ของผู้ดูแลระบบ และจะไม่ถูกส่งต่อให้บุคคลภายนอก</p>
+        <p className="font-black text-slate-800 border-l-4 border-blue-500 pl-3">1. การเก็บรวบรวมข้อมูล</p>
+        <p>เราจัดเก็บเพียง รหัสนักเรียน และ ชื่อ-นามสกุล เพื่อใช้ในการบันทึกคะแนนและติดตามความก้าวหน้าเท่านั้น</p>
+        <p className="font-black text-slate-800 border-l-4 border-blue-500 pl-3">2. การใช้งานข้อมูล</p>
+        <p>ข้อมูลทั้งหมดจะถูกเก็บเป็นความลับในระบบ Google Sheets และจะไม่ถูกส่งต่อให้บุคคลภายนอก</p>
       </div>
     ),
     terms: (
       <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
-        <p>ยินดีต้อนรับสู่ The Financial Classroom แอปพลิเคชันนี้จัดทำขึ้นเพื่อวัตถุประสงค์ทางการศึกษาเท่านั้น</p>
-        <ul className="list-disc ml-5 space-y-2">
+        <p className="font-bold text-slate-800">ยินดีต้อนรับสู่ The Financial Classroom</p>
+        <ul className="list-disc ml-5 space-y-2 font-medium">
           <li>ผู้ใช้งานตกลงที่จะไม่พยายามแฮ็กระบบหรือกรอกข้อมูลเท็จ</li>
-          <li>เนื้อหาในโมดูลการเงินเป็นการจำลองเพื่อการเรียนรู้ ไม่ใช่คำแนะนำทางการลงทุนจริง</li>
+          <li>เนื้อหาเป็นการจำลองเพื่อการเรียนรู้ ไม่ใช่คำแนะนำทางการลงทุนจริง</li>
         </ul>
       </div>
     ),
     contact: (
-      <div className="text-center py-6 space-y-6">
-        <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-2 shadow-inner">
-          <span className="material-symbols-outlined text-5xl">contact_support</span>
+      <div className="text-center py-6 space-y-6 animate-fadeIn">
+        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-2 shadow-xl shadow-blue-500/20">
+          <span className="material-symbols-outlined text-4xl">contact_support</span>
         </div>
-        
         <div className="space-y-1">
-          <p className="text-xl font-black text-slate-800">คุณครูอชิตพล บุณรัตน์</p>
-          <p className="text-slate-500 text-sm font-bold">กลุ่มสาระการเรียนรู้คณิตศาสตร์ โรงเรียนวังโพรงพิทยาคม</p>
-          <p className="text-slate-500 text-sm font-bold">สพม.พิษณุโลก อุตรดิตถ์</p>
+          <p className="text-2xl font-black text-slate-800">ครูอชิตพล บุณรัตน์</p>
+          <p className="text-blue-600 text-sm font-black uppercase tracking-widest">กลุ่มสาระการเรียนรู้คณิตศาสตร์</p>
+          <p className="text-slate-500 text-xs font-bold">โรงเรียนวังโพรงพิทยาคม สพม.พลอต.</p>
         </div>
-
-        <div className="grid grid-cols-1 gap-3 mt-6">
-          {/* ช่องทาง Email */}
-          <a 
-            href="mailto:achittapon.boonrat@wppschool.ac.th" 
-            className="flex items-center justify-center gap-3 py-3 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-blue-50 hover:border-blue-200 transition-all text-slate-700 font-bold group"
-          >
-            <span className="material-symbols-outlined text-blue-600 group-hover:scale-110 transition-transform">mail</span>
-            achittapon.boonrat@wppschool.ac.th
+        <div className="grid grid-cols-1 gap-3 mt-8">
+          <a href="mailto:achittapon.boonrat@wppschool.ac.th" className="flex items-center justify-center gap-3 py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:border-blue-300 hover:shadow-md transition-all text-slate-700 font-black group">
+            <span className="material-symbols-outlined text-blue-500 group-hover:scale-110 transition-transform">mail</span>
+            <span className="text-sm">Email Contact</span>
           </a>
-
-          {/* ช่องทาง Facebook */}
-          <a 
-            href="https://www.facebook.com/KumEzio/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-3 py-3 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all text-slate-700 font-bold group"
-          >
-            <span className="material-symbols-outlined text-blue-600 group-hover:text-white group-hover:scale-110 transition-transform">share</span>
-            Facebook: AC'Kum Achittapon
+          <a href="https://www.facebook.com/KumEzio/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3 py-4 bg-blue-600 rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all text-white font-black group">
+            <span className="material-symbols-outlined group-hover:scale-110 transition-transform">share</span>
+            <span className="text-sm">Facebook: AC'Kum Achittapon</span>
           </a>
         </div>
       </div>
@@ -62,61 +47,93 @@ export default function Footer({ totalViews = 0 }) {
   };
 
   return (
-    // ✅ เพิ่ม pt-12 (padding-top) เพื่อให้ห่างจากเนื้อหาด้านบนเล็กน้อย
-    <footer className="p-8 md:px-12 pt-12 border-t border-slate-100 bg-white">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+    <footer className="relative pt-12 pb-8 px-6 md:px-12 border-t border-slate-200/40 bg-white/70 backdrop-blur-2xl w-full select-none font-sans">
+      
+      {/* 🏷️ Top Copyright Tag */}
+      <div className="absolute top-4 left-0 w-full flex justify-center pointer-events-none">
+        <span className="text-[10px] text-slate-300 font-black uppercase tracking-[0.4em] opacity-60">
+          © 2026 THE FINANCIAL CLASSROOM
+        </span>
+      </div>
+
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-10 relative z-10">
         
-        {/* ✅ ปรับ: ฝั่งซ้าย - ชื่อแอปกับผู้พัฒนา อยู่คนละบรรทัด */}
-        <div className="text-center md:text-left space-y-1">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
-            © 2026 The Financial Classroom
-          </p>
-          <p className="text-slate-600 text-sm font-black mt-1">
-            สร้างสรรค์โดย ครูอชิตพล บุณรัตน์ <span className="text-blue-500">|</span> โรงเรียนวังโพรงพิทยาคม สพม.พล อต
-          </p>
+        {/* 👤 Left: Creator Showcase */}
+        <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-slate-100 to-white border border-white shadow-sm flex items-center justify-center">
+            <span className="material-symbols-outlined text-blue-500">draw</span>
+          </div>
+          <div className="text-center md:text-left space-y-1">
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              <span className="text-sm font-black text-slate-800 tracking-tight">สร้างสรรค์โดย <span className="text-blue-600">ครูอชิตพล บุณรัตน์</span></span>
+            </div>
+            <div className="flex items-center justify-center md:justify-start gap-2 opacity-70">
+              <span className="material-symbols-outlined text-[14px] text-rose-400">school</span>
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">โรงเรียนวังโพรงพิทยาคม สพม.พลอต.</span>
+            </div>
+          </div>
         </div>
 
-        {/* ฝั่งขวา - ยอดผู้เข้าชม + เมนู */}
-        <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-          
-          {/* ✅ ใหม่: กล่องแสดงยอดผู้เข้าชม (Visitor Counter) */}
-          <div className="flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 shadow-inner">
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Total Visitors</span>
-              <div className="flex items-center gap-2">
-                {/* ไฟกระพริบสีเขียว แสดงว่าระบบทำงานอยู่ */}
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span className="text-xl font-black text-slate-800 tracking-tight">
-                  {/* แสดงยอดวิวแบบใส่จุลภาค (1,000) */}
-                  {totalViews.toLocaleString()}
-                </span>
-              </div>
-            </div>
-            {/* ไอคอนกราฟ monitoring */}
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-              <span className="material-symbols-outlined text-blue-600 text-2xl font-bold">monitoring</span>
+        {/* 📈 Center: Analytics Widget */}
+        <div className="flex items-center gap-4 bg-white/80 px-6 py-3 rounded-[2rem] border border-white shadow-xl shadow-blue-900/5 hover:scale-105 transition-all duration-500 group">
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Live Visitors</span>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></div>
+              <span className="text-2xl font-black text-slate-800 tracking-tighter">
+                {totalViews.toLocaleString()}
+              </span>
             </div>
           </div>
+          <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center shadow-inner group-hover:bg-blue-500 group-hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-xl font-bold">analytics</span>
+          </div>
+        </div>
 
-          {/* ปุ่มเมนูข้อตกลงและติดต่อ */}
-          <div className="flex gap-6 text-sm font-bold text-slate-500 border-l md:border-l-0 border-slate-200 pl-6 md:pl-0">
-            <button onClick={() => setModalType('privacy')} className="hover:text-blue-600 transition-all">นโยบายความเป็นส่วนตัว</button>
-            <button onClick={() => setModalType('terms')} className="hover:text-blue-600 transition-all">ข้อตกลงการใช้งาน</button>
-            <button onClick={() => setModalType('contact')} className="hover:text-blue-600 transition-all border-l border-slate-200 pl-6">ติดต่อครู</button>
+        {/* 🔗 Right: Elegant Navigation */}
+        <div className="flex flex-wrap justify-center items-center gap-6 md:gap-8">
+          <div className="flex gap-6">
+            <FooterBtn label="นโยบายความเป็นส่วนตัว" onClick={() => setModalType('privacy')} color="blue" />
+            <FooterBtn label="ข้อตกลงการใช้งาน" onClick={() => setModalType('terms')} color="blue" />
           </div>
+          
+          <div className="hidden sm:block h-8 w-px bg-slate-200"></div>
+          
+          <button 
+            onClick={() => setModalType('contact')}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-full text-xs font-black uppercase tracking-widest hover:bg-blue-600 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-slate-900/10"
+          >
+            <span className="material-symbols-outlined text-sm">rocket_launch</span>
+            ติดต่อครู
+          </button>
         </div>
       </div>
 
-      {/* เรียกใช้งาน Modal (คงเดิม) */}
-      <InfoModal 
-        isOpen={modalType !== null} 
+      <InfoModal
+        isOpen={modalType !== null}
         onClose={() => setModalType(null)}
         title={
           modalType === 'privacy' ? 'นโยบายความเป็นส่วนตัว' :
-          modalType === 'terms' ? 'ข้อตกลงการใช้งาน' : 'ติดต่อผู้ดูแลระบบ'
+          modalType === 'terms' ? 'ข้อตกลงการใช้งาน' : 'ข้อมูลครูผู้สอน'
         }
         content={infoContent[modalType]}
       />
     </footer>
+  );
+}
+
+// ✅ Internal Button Component for consistency
+function FooterBtn({ label, onClick, color }) {
+  const activeColor = color === 'blue' ? 'bg-blue-500' : 'bg-rose-500';
+  const hoverText = color === 'blue' ? 'hover:text-blue-600' : 'hover:text-rose-500';
+  
+  return (
+    <button
+      onClick={onClick}
+      className={`relative py-1 text-xs font-black text-slate-500 ${hoverText} transition-colors focus:outline-none group uppercase tracking-wider`}
+    >
+      {label}
+      <span className={`absolute left-0 -bottom-0.5 w-0 h-0.5 ${activeColor} rounded-full group-hover:w-full transition-all duration-300 shadow-[0_0_8px_rgba(59,130,246,0.5)]`}></span>
+    </button>
   );
 }

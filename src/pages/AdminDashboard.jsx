@@ -37,7 +37,6 @@ export default function AdminDashboard({ user }) {
     if (user?.role === 'teacher') fetchAdminData();
   }, [user]);
 
-  // --- 📈 ส่วนที่ 1: วิเคราะห์ข้อมูลสำหรับกราฟ (Class Analytics) ---
   const getAnalyticsData = () => {
     const modules = [
       { id: 'Module 1', short: 'ด่าน 1', full: 'รู้เท่าทันภัย' },
@@ -55,22 +54,9 @@ export default function AdminDashboard({ user }) {
     });
   };
 
-  // --- 📊 ส่วนที่ 2: ฟังก์ชันส่งออกข้อมูล (Data Export) ---
   const exportToCSV = () => {
-    // หัวตาราง
     const headers = ["ID", "Name", "School", "Modules Completed", "Progress (%)", "Last Active"];
-    
-    // ข้อมูลนักเรียน
-    const rows = students.map(s => [
-      s.id,
-      s.name,
-      user.school,
-      s.progressCount,
-      s.progressPercent,
-      s.lastActive
-    ]);
-
-    // สร้างเนื้อหา CSV (ใส่ BOM เพื่อให้ Excel อ่านภาษาไทยออก)
+    const rows = students.map(s => [s.id, s.name, user.school, s.progressCount, s.progressPercent, s.lastActive]);
     const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -84,10 +70,14 @@ export default function AdminDashboard({ user }) {
 
   if (user?.role !== "teacher") {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[500px] text-slate-500 space-y-4 animate-fadeIn">
-        <span className="material-symbols-outlined text-7xl text-red-300">gavel</span>
-        <h2 className="text-2xl font-black text-slate-700">พื้นที่สงวนสิทธิ์เฉพาะครูผู้สอน</h2>
-        <p>บัญชีของคุณไม่มีสิทธิ์เข้าถึงข้อมูลส่วนนี้ครับ</p>
+      <div className="flex flex-col items-center justify-center h-full min-h-[600px] text-slate-500 space-y-6 animate-fadeIn">
+        <div className="w-24 h-24 bg-rose-50 text-rose-400 rounded-[2rem] flex items-center justify-center shadow-inner">
+           <span className="material-symbols-outlined text-5xl">gavel</span>
+        </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-3xl font-black text-slate-800 tracking-tight pb-2">พื้นที่สงวนสิทธิ์เฉพาะครูผู้สอน</h2>
+          <p className="font-bold opacity-60">บัญชีของคุณไม่มีสิทธิ์เข้าถึงข้อมูลวิเคราะห์ส่วนนี้ครับ</p>
+        </div>
       </div>
     );
   }
@@ -103,165 +93,176 @@ export default function AdminDashboard({ user }) {
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 min-h-screen font-sans animate-fadeIn">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 md:px-10 font-sans animate-fadeIn relative overflow-hidden">
       
-      {/* Header */}
-      <section className="bg-slate-900 p-8 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden border border-slate-800">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px]"></div>
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-            <span className="material-symbols-outlined text-4xl">analytics</span>
-          </div>
-          <div>
-            <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Analytics Dashboard</h2>
-            <p className="text-indigo-300 font-bold text-sm md:text-base mt-1">
-              โรงเรียน: {user.school}
-            </p>
-          </div>
-        </div>
+      {/* 🔮 Background Decor */}
+      <div className="absolute top-0 right-0 w-[45rem] h-[45rem] bg-indigo-100/40 rounded-full blur-[120px] -mr-48 -mt-48"></div>
+      <div className="absolute bottom-0 left-0 w-[35rem] h-[35rem] bg-blue-50/60 rounded-full blur-[100px] -ml-48 -mb-48"></div>
+
+      <div className="max-w-7xl mx-auto space-y-10 relative z-10">
         
-        <div className="flex flex-col sm:flex-row gap-3 relative z-10 w-full md:w-auto">
-          {/* ✅ ปุ่มส่งออกข้อมูล */}
-          <button 
-            onClick={exportToCSV}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-black rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
-          >
-            <span className="material-symbols-outlined">download</span>
-            ส่งออกไฟล์ CSV
-          </button>
+        {/* 💎 Header Section: Snowy Glass Style */}
+        <section className="bg-white/60 backdrop-blur-2xl p-10 rounded-[3rem] border border-white shadow-xl shadow-slate-200/50 flex flex-col lg:flex-row justify-between items-center gap-8 overflow-hidden">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl flex items-center justify-center text-white text-5xl shadow-xl shadow-indigo-500/20 group hover:scale-110 transition-transform duration-500">
+              <span className="material-symbols-outlined text-5xl">analytics</span>
+            </div>
+            <div>
+              <h2 className="text-4xl font-black text-slate-800 tracking-tight pb-2 pr-4 leading-tight">Class Analytics</h2>
+              <p className="text-slate-500 font-bold italic flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">school</span> 
+                {user.school}
+              </p>
+            </div>
+          </div>
           
-          <button onClick={fetchAdminData} disabled={loading} className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 border border-white/20 backdrop-blur-md active:scale-95">
-            <span className={`material-symbols-outlined ${loading ? 'animate-spin' : ''}`}>sync</span>
-            {loading ? 'กำลังดึงข้อมูล...' : 'รีเฟรช'}
-          </button>
-        </div>
-      </section>
+          <div className="flex flex-wrap justify-center gap-4 w-full lg:w-auto">
+            <button onClick={exportToCSV} className="flex-1 lg:flex-none px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95">
+              <span className="material-symbols-outlined">download</span> ส่งออก CSV
+            </button>
+            <button onClick={fetchAdminData} disabled={loading} className="flex-1 lg:flex-none px-8 py-4 bg-white border border-slate-200 text-slate-700 font-black rounded-2xl shadow-sm hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-3">
+              <span className={`material-symbols-outlined ${loading ? 'animate-spin' : ''}`}>sync</span>
+              {loading ? 'Updating...' : 'รีเฟรชข้อมูล'}
+            </button>
+          </div>
+        </section>
 
-      {/* Stats & Class Analytics Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* กราฟแท่งแสดงผลงานรายด่าน */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-          <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-indigo-500">bar_chart</span>
-            จำนวนนักเรียนที่ผ่านในแต่ละโมดูล
-          </h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analyticsData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontWeight: 'bold', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontWeight: 'bold'}} />
-                <Tooltip 
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
-                  formatter={(value) => [`${value} คน`, 'จำนวนผู้ผ่าน']}
-                />
-                <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={40}>
-                  {analyticsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#6366f1' : '#818cf8'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        {/* 📊 Main Analytics Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Bar Chart Section */}
+          <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl p-10 rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-white h-full">
+            <div className="flex items-center gap-3 mb-10 border-b border-slate-50 pb-6">
+              <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                 <span className="material-symbols-outlined">bar_chart</span>
+              </div>
+              <h3 className="text-xl font-black text-slate-800 tracking-tight">สถิติการผ่านรายโมดูล</h3>
+            </div>
+            
+            <div className="h-[350px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analyticsData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontWeight: '900', fontSize: 11}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontWeight: 'bold'}} />
+                  <Tooltip 
+                    cursor={{fill: '#f1f5f9'}}
+                    contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'black'}}
+                    formatter={(value) => [`${value} คน`, 'จำนวนผู้ผ่าน']}
+                  />
+                  <Bar dataKey="count" radius={[12, 12, 4, 4]} barSize={45}>
+                    {analyticsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#6366f1' : '#a5b4fc'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Quick Stats Column */}
+          <div className="space-y-8">
+            <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-10 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden group">
+              <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-[60px]"></div>
+              <p className="text-indigo-100 font-black text-[11px] uppercase tracking-[0.3em] mb-3 opacity-80">School Average Progress</p>
+              <h3 className="text-7xl font-black tracking-tighter pb-4 pr-12 leading-none">{avgProgress}%</h3>
+              <div className="mt-6 w-full bg-white/20 h-4 rounded-full overflow-hidden p-1">
+                <div className="bg-white h-full rounded-full shadow-lg transition-all duration-1000" style={{width: `${avgProgress}%`}}></div>
+              </div>
+              <span className="material-symbols-outlined absolute -right-6 -bottom-6 text-[10rem] opacity-5 rotate-12">auto_graph</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              <QuickStatCard label="นักเรียนทั้งหมด" value={students.length} unit="คน" icon="group" color="blue" />
+              <QuickStatCard label="เรียนจบ 100%" value={students.filter(s => s.progressPercent === 100).length} unit="คน" icon="verified_user" color="emerald" />
+            </div>
           </div>
         </div>
 
-        {/* การ์ดสถิติเล็ก */}
-        <div className="space-y-6">
-          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
-            <div className="relative z-10">
-              <p className="text-indigo-100 font-bold text-xs uppercase tracking-widest mb-1">ความคืบหน้าเฉลี่ยทั้งโรงเรียน</p>
-              <h3 className="text-5xl font-black">{avgProgress}%</h3>
-              <div className="mt-4 w-full bg-white/20 h-2 rounded-full overflow-hidden">
-                <div className="bg-white h-full" style={{width: `${avgProgress}%`}}></div>
+        {/* 📑 Student List Table Section */}
+        <div className="bg-white/90 backdrop-blur-2xl rounded-[3.5rem] border border-white shadow-2xl overflow-hidden flex flex-col">
+          <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6 bg-slate-50/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                 <span className="material-symbols-outlined">person_search</span>
               </div>
+              <h3 className="text-xl font-black text-slate-800 tracking-tight">รายชื่อนักเรียนและผลการเรียน</h3>
             </div>
-            <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl opacity-10">grade</span>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center"><span className="material-symbols-outlined">group</span></div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">นร. ทั้งหมด</p>
-                <h4 className="text-2xl font-black text-slate-800">{students.length} คน</h4>
-              </div>
+            
+            <div className="flex items-center bg-white rounded-2xl px-5 py-3 border border-slate-200 w-full sm:w-80 shadow-inner group focus-within:border-indigo-300 transition-all">
+              <span className="material-symbols-outlined text-slate-400 text-xl mr-3 group-focus-within:text-indigo-500">search</span>
+              <input 
+                type="text" placeholder="ค้นหาชื่อ หรือ ID นักเรียน..." 
+                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                className="border-none outline-none text-sm w-full font-bold text-slate-700 bg-transparent placeholder:text-slate-300"
+              />
             </div>
           </div>
-
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center"><span className="material-symbols-outlined">verified</span></div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">นร. ที่เรียนจบ 100%</p>
-                <h4 className="text-2xl font-black text-slate-800">{students.filter(s => s.progressPercent === 100).length} คน</h4>
-              </div>
-            </div>
+          
+          <div className="overflow-x-auto max-h-[600px] custom-scrollbar">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-white text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] sticky top-0 shadow-sm z-20">
+                <tr>
+                  <th className="px-10 py-6">Student Info</th>
+                  <th className="px-10 py-6">Overall Progress</th>
+                  <th className="px-10 py-6 text-center">Last Active</th>
+                  <th className="px-10 py-6 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map(std => (
+                    <tr key={std.id} className="hover:bg-indigo-50/20 transition-all group">
+                      <td className="px-10 py-6">
+                        <div className="font-black text-slate-800 text-lg group-hover:text-indigo-600 transition-colors">{std.name}</div>
+                        <div className="text-[10px] font-black text-slate-400 tracking-widest uppercase mt-1">ID: {std.id}</div>
+                      </td>
+                      <td className="px-10 py-6 w-72">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-black text-slate-400 uppercase">{std.progressCount} / 5 Modules</span>
+                          <span className="text-sm font-black text-indigo-600">{std.progressPercent}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
+                          <div className={`h-full rounded-full transition-all duration-700 shadow-sm ${std.progressPercent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${std.progressPercent}%` }}></div>
+                        </div>
+                      </td>
+                      <td className="px-10 py-6 text-center text-xs font-black text-slate-500">{std.lastActive}</td>
+                      <td className="px-10 py-6 text-center">
+                        <button 
+                          className="px-6 py-2.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all active:scale-95 shadow-md"
+                          onClick={() => alert(`📌 ข้อมูลของ ${std.name}:\n\n${std.history.length > 0 ? std.history.map(h => `[${h.date}] ${h.module}: ${h.detail}`).join('\n') : 'ไม่มีข้อมูล'}`)}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan="4" className="p-20 text-center text-slate-300 font-black uppercase tracking-widest italic">No students found</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* ตารางรายชื่อนักเรียน (คงเดิมแต่ปรับ UI นิดหน่อย) */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
-          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-            <span className="material-symbols-outlined text-indigo-500">person_search</span> รายชื่อนักเรียนและประวัติการเรียน
-          </h3>
-          <div className="flex items-center bg-white rounded-xl px-4 py-2 border border-slate-200 w-full sm:w-64 shadow-inner">
-            <span className="material-symbols-outlined text-slate-400 text-sm mr-2">search</span>
-            <input 
-              type="text" placeholder="ค้นหาชื่อ หรือ ID..." 
-              value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="border-none outline-none text-sm w-full font-bold text-slate-600 bg-transparent"
-            />
-          </div>
-        </div>
-        
-        <div className="overflow-x-auto max-h-[500px]">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white text-[10px] font-black text-slate-400 uppercase tracking-widest sticky top-0 shadow-sm z-10">
-              <tr>
-                <th className="p-5 border-b">ข้อมูลนักเรียน</th>
-                <th className="p-5 border-b">ความคืบหน้า</th>
-                <th className="p-5 border-b text-center">เข้าเรียนล่าสุด</th>
-                <th className="p-5 border-b text-center">รายละเอียด</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map(std => (
-                  <tr key={std.id} className="hover:bg-indigo-50/30 transition-colors">
-                    <td className="p-5">
-                      <div className="font-black text-slate-800 text-base">{std.name}</div>
-                      <div className="text-[10px] font-bold text-indigo-400 tracking-widest uppercase">ID: {std.id}</div>
-                    </td>
-                    <td className="p-5 w-48 sm:w-64">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-bold text-slate-400">{std.progressCount}/5 ด่าน</span>
-                        <span className="text-xs font-black text-indigo-600">{std.progressPercent}%</span>
-                      </div>
-                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-500 ${std.progressPercent === 100 ? 'bg-green-500' : 'bg-indigo-500'}`} style={{ width: `${std.progressPercent}%` }}></div>
-                      </div>
-                    </td>
-                    <td className="p-5 text-center text-xs font-bold text-slate-500">{std.lastActive}</td>
-                    <td className="p-5 text-center">
-                      <button 
-                        className="px-4 py-2 bg-slate-100 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all active:scale-95"
-                        onClick={() => alert(`📌 ข้อมูลของ ${std.name}:\n\n${std.history.length > 0 ? std.history.map(h => `[${h.date}] ${h.module}: ${h.detail}`).join('\n') : 'ไม่มีข้อมูล'}`)}
-                      >
-                        เปิดดู
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr><td colSpan="4" className="p-10 text-center text-slate-400 font-bold italic">ไม่พบข้อมูลนักเรียนในโรงเรียนนี้</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+// ✅ Sub-component for Quick Stats
+function QuickStatCard({ label, value, unit, icon, color }) {
+  const colors = {
+    blue: 'bg-blue-50 text-blue-600',
+    emerald: 'bg-emerald-50 text-emerald-600'
+  };
+  return (
+    <div className="bg-white/90 backdrop-blur-xl p-8 rounded-[3rem] shadow-xl border border-white flex items-center gap-6 group hover:scale-[1.02] transition-all duration-500">
+      <div className={`w-16 h-16 ${colors[color]} rounded-2xl flex items-center justify-center shadow-inner shrink-0`}>
+        <span className="material-symbols-outlined text-3xl">{icon}</span>
+      </div>
+      <div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{label}</p>
+        <h4 className="text-3xl font-black text-slate-800 tracking-tighter">{value} <span className="text-sm text-slate-400">{unit}</span></h4>
       </div>
     </div>
   );
