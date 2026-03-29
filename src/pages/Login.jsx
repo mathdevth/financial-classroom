@@ -8,8 +8,11 @@ export default function Login({ onLogin }) {
   const [school, setSchool] = useState('โรงเรียนวังโพรงพิทยาคม');
   const [inviteCode, setInviteCode] = useState('');
   
-  // ✅ เพิ่ม State สำหรับปีการศึกษาและภาคเรียน
-  const [year, setYear] = useState('2569');
+  // ✅ คำนวณปีพุทธศักราชปัจจุบันจากนาฬิกาเครื่องนักเรียน
+  const currentThaiYear = (new Date().getFullYear() + 543).toString();
+
+  // ✅ เปลี่ยน State ให้รองรับการกรอก และตั้งค่า Default เป็นปีปัจจุบัน
+  const [year, setYear] = useState(currentThaiYear);
   const [semester, setSemester] = useState('1');
   
   const [isAccepted, setIsAccepted] = useState(false);
@@ -23,7 +26,6 @@ export default function Login({ onLogin }) {
     setLoading(true);
     try {
       if (isRegisterMode) {
-        // ✅ ส่งข้อมูลปีการศึกษาและภาคเรียนไปด้วยตอนสมัคร
         await fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
@@ -115,15 +117,19 @@ export default function Login({ onLogin }) {
                   <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-slate-700 transition-all" placeholder="ชื่อ-นามสกุล" required />
                 </div>
                 
-                {/* ✅ ส่วนที่เพิ่มใหม่: ปีการศึกษา และ ภาคเรียน */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ปีการศึกษา</label>
-                    <select value={year} onChange={(e) => setYear(e.target.value)} className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner">
-                      <option value="2569">2569</option>
-                      <option value="2568">2568</option>
-                      <option value="2567">2567</option>
-                    </select>
+                    {/* ✅ เปลี่ยนเป็น Input ให้กรอกได้ และป้องกันการกรอกอย่างอื่นนอกจากตัวเลข */}
+                    <input 
+                      type="text" 
+                      value={year} 
+                      onChange={(e) => setYear(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                      placeholder="เช่น 2569"
+                      maxLength={4}
+                      required
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ภาคเรียน</label>
