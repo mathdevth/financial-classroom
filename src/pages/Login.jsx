@@ -8,17 +8,23 @@ export default function Login({ onLogin }) {
   const [school, setSchool] = useState('โรงเรียนวังโพรงพิทยาคม');
   const [inviteCode, setInviteCode] = useState('');
   
-  // ✅ คำนวณปีพุทธศักราชปัจจุบันจากนาฬิกาเครื่องนักเรียน
+  // ✅ คำนวณปีพุทธศักราชปัจจุบันอัตโนมัติ
   const currentThaiYear = (new Date().getFullYear() + 543).toString();
 
-  // ✅ เปลี่ยน State ให้รองรับการกรอก และตั้งค่า Default เป็นปีปัจจุบัน
+  // ✅ State สำหรับข้อมูลสถานะทางการศึกษา (Default ตามปีปัจจุบัน)
   const [year, setYear] = useState(currentThaiYear);
   const [semester, setSemester] = useState('1');
+  const [grade, setGrade] = useState('ม.1');
+  const [room, setRoom] = useState('');
+  const [number, setNumber] = useState('');
   
   const [isAccepted, setIsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
+
+  // ตรวจสอบว่าเป็นครูหรือไม่ (ดูจากรหัสเชิญ)
+  const isTeacher = inviteCode === "TEACHER-999";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,8 +42,12 @@ export default function Login({ onLogin }) {
             password: password,
             school: school,
             inviteCode: inviteCode,
-            year: year,
-            semester: semester
+            // ถ้าเป็นครู ส่งค่าว่างไป ถ้าเป็นนักเรียนส่งค่าจริง
+            year: isTeacher ? "" : year,
+            semester: isTeacher ? "" : semester,
+            grade: isTeacher ? "" : grade,
+            room: isTeacher ? "" : room,
+            number: isTeacher ? "" : number
           })
         });
         alert('ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบอีกครั้งครับ');
@@ -47,14 +57,7 @@ export default function Login({ onLogin }) {
         const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=login&userId=${studentId}&password=${password}`);
         const result = await response.json();
         if (result.status === "success") {
-          onLogin({ 
-            id: result.id, 
-            name: result.name,
-            school: result.school,
-            role: result.role,
-            year: result.year,
-            semester: result.semester
-          });
+          onLogin(result); // เข้าสู่ระบบพร้อมข้อมูล Role, Year, Semester, etc.
         } else {
           alert(result.message || 'ID หรือรหัสผ่านไม่ถูกต้อง');
         }
@@ -81,14 +84,14 @@ export default function Login({ onLogin }) {
         
         {/* Header Section */}
         <div className="text-center mb-10 select-none w-full">
-          <div className={`w-20 h-20 mx-auto rounded-[2rem] flex items-center justify-center text-white text-4xl mb-6 transition-all duration-500 shadow-lg ${isRegisterMode ? 'bg-gradient-to-br from-emerald-400 to-cyan-500' : 'bg-gradient-to-br from-blue-600 to-indigo-700'}`}>
-            <span className="material-symbols-outlined text-4xl">{isRegisterMode ? 'person_add' : 'fingerprint'}</span>
+          <div className={`w-20 h-20 mx-auto rounded-[2rem] flex items-center justify-center text-white text-4xl mb-6 transition-all duration-500 shadow-lg ${isRegisterMode ? (isTeacher ? 'bg-indigo-600' : 'bg-gradient-to-br from-emerald-400 to-cyan-500') : 'bg-gradient-to-br from-blue-600 to-indigo-700'}`}>
+            <span className="material-symbols-outlined text-4xl">{isRegisterMode ? (isTeacher ? 'admin_panel_settings' : 'person_add') : 'fingerprint'}</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-800 pb-1 leading-tight">
-            Financial <span className="text-blue-600">Class</span>
+            {isTeacher && isRegisterMode ? 'Teacher Portal' : 'Financial Class'}
           </h2>
           <p className="text-slate-400 font-bold text-[10px] uppercase mt-2 tracking-[0.3em]">
-            {isRegisterMode ? 'Create New Account' : 'Welcome Back Student'}
+            {isRegisterMode ? (isTeacher ? 'บัญชีผู้ดูแลระบบ' : 'Create Student Account') : 'Welcome to Classroom'}
           </p>
         </div>
 
@@ -117,47 +120,69 @@ export default function Login({ onLogin }) {
                   <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-slate-700 transition-all" placeholder="ชื่อ-นามสกุล" required />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ปีการศึกษา</label>
-                    {/* ✅ เปลี่ยนเป็น Input ให้กรอกได้ และป้องกันการกรอกอย่างอื่นนอกจากตัวเลข */}
-                    <input 
-                      type="text" 
-                      value={year} 
-                      onChange={(e) => setYear(e.target.value.replace(/[^0-9]/g, ''))}
-                      className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
-                      placeholder="เช่น 2569"
-                      maxLength={4}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ภาคเรียน</label>
-                    <select value={semester} onChange={(e) => setSemester(e.target.value)} className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner">
-                      <option value="1">ภาคเรียนที่ 1</option>
-                      <option value="2">ภาคเรียนที่ 2</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">โรงเรียน / สถาบัน</label>
-                  <input type="text" value={school} onChange={(e) => setSchool(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-slate-700 transition-all" required />
-                </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-cyan-500 uppercase ml-2 tracking-widest flex items-center gap-1">
                     <span className="material-symbols-outlined text-sm">key</span> รหัสเชิญครู (ถ้ามี)
                   </label>
-                  <input type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} className="w-full px-6 py-3 bg-cyan-50/50 border border-cyan-100 rounded-2xl focus:ring-4 focus:ring-cyan-500/10 outline-none font-bold text-cyan-800 transition-all" placeholder="นักเรียนเว้นว่างไว้" />
+                  <input type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} className="w-full px-6 py-3 bg-cyan-50/50 border border-cyan-100 rounded-2xl focus:ring-4 focus:ring-cyan-500/10 outline-none font-bold text-cyan-800 transition-all" placeholder="เว้นว่างไว้สำหรับนักเรียน" />
+                </div>
+
+                {/* ✅ แสดงฟิลด์ข้อมูลการศึกษาเฉพาะเมื่อเป็นนักเรียน */}
+                {!isTeacher && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ปีการศึกษา</label>
+                        <input 
+                          type="text" 
+                          value={year} 
+                          onChange={(e) => setYear(e.target.value.replace(/[^0-9]/g, ''))}
+                          className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                          placeholder={currentThaiYear}
+                          maxLength={4}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ภาคเรียน</label>
+                        <select value={semester} onChange={(e) => setSemester(e.target.value)} className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner">
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ระดับชั้น</label>
+                        <select value={grade} onChange={(e) => setGrade(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-inner">
+                          {['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'].map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ห้อง</label>
+                        <input type="text" value={room} onChange={(e) => setRoom(e.target.value.replace(/[^0-9]/g, ''))} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-inner" placeholder="1" required />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">เลขที่</label>
+                        <input type="text" value={number} onChange={(e) => setNumber(e.target.value.replace(/[^0-9]/g, ''))} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-inner" placeholder="15" required />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">โรงเรียน / สถาบัน</label>
+                  <input type="text" value={school} onChange={(e) => setSchool(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-slate-700 transition-all shadow-inner" required />
                 </div>
             </div>
           )}
 
           {/* PDPA Agreement */}
           <div className={`flex items-start gap-3 p-4 rounded-2xl border transition-all mt-2 ${isAccepted ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
-            <input type="checkbox" checked={isAccepted} onChange={(e) => setIsAccepted(e.target.checked)} className="mt-1 w-5 h-5 text-blue-600 rounded-lg cursor-pointer accent-blue-600" />
-            <label className="text-[11px] text-slate-500 font-bold leading-relaxed cursor-pointer select-none" onClick={() => setIsAccepted(!isAccepted)}>
-              ยินยอมให้นำข้อมูลไปใช้บันทึกคะแนนและออกเกียรติบัตร (PDPA)
+            <input type="checkbox" id="pdpa" checked={isAccepted} onChange={(e) => setIsAccepted(e.target.checked)} className="mt-1 w-5 h-5 text-blue-600 rounded-lg cursor-pointer accent-blue-600" />
+            <label htmlFor="pdpa" className="text-[11px] text-slate-500 font-bold leading-relaxed cursor-pointer select-none">
+              ยินยอมให้นำข้อมูลไปใช้เพื่อบันทึกคะแนนและออกเกียรติบัตร (PDPA)
             </label>
           </div>
 
@@ -171,9 +196,10 @@ export default function Login({ onLogin }) {
             type="button"
             onClick={() => {
               setIsRegisterMode(!isRegisterMode);
+              setInviteCode('');
               setPassword('');
             }} 
-            className="w-full py-4 text-xs font-black text-slate-400 hover:text-slate-800 transition-all uppercase tracking-widest"
+            className="w-full py-2 text-xs font-black text-slate-400 hover:text-slate-800 transition-all uppercase tracking-widest"
           >
             {isRegisterMode ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? ลงทะเบียนฟรีที่นี่'}
           </button>
