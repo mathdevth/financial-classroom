@@ -5,6 +5,9 @@ export default function AdminDashboard({ user }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // ✅ State สำหรับควบคุม Modal ดูรายละเอียดนักเรียน
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
@@ -66,6 +69,25 @@ export default function AdminDashboard({ user }) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // ✅ ฟังก์ชันช่วยแปลงข้อมูล JSON ยาวๆ ให้ดูอ่านง่ายขึ้นใน Modal
+  const formatDetail = (detail) => {
+    try {
+      if (typeof detail === 'string' && detail.startsWith('{')) {
+        const obj = JSON.parse(detail);
+        return Object.entries(obj)
+          .filter(([key, value]) => value !== 0 && value !== "") // ซ่อนค่าว่าง
+          .map(([key, value]) => {
+            // แปลงคีย์ให้สวยงาม (ถ้าต้องการ) หรือแค่โชว์ค่า
+            const formattedValue = typeof value === 'number' ? value.toLocaleString() : value;
+            return <span key={key} className="inline-block bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs mr-2 mb-2 font-bold">{key}: {formattedValue}</span>;
+          });
+      }
+      return <span className="text-slate-600 text-sm font-bold">{detail}</span>;
+    } catch (e) {
+      return <span className="text-slate-600 text-sm font-bold">{detail}</span>;
+    }
   };
 
   if (user?.role !== "teacher") {
@@ -230,7 +252,7 @@ export default function AdminDashboard({ user }) {
                       <td className="px-10 py-6 text-center">
                         <button 
                           className="px-6 py-2.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all active:scale-95 shadow-md"
-                          onClick={() => alert(`📌 ข้อมูลของ ${std.name}:\n\n${std.history.length > 0 ? std.history.map(h => `[${h.date}] ${h.module}: ${h.detail}`).join('\n') : 'ไม่มีข้อมูล'}`)}
+                          onClick={() => setSelectedStudent(std)} // ✅ เปลี่ยนจาก alert เป็นการเปิด Modal
                         >
                           View Details
                         </button>
@@ -245,6 +267,70 @@ export default function AdminDashboard({ user }) {
           </div>
         </div>
       </div>
+
+      {/* ✅ Premium Detail Modal */}
+      {selectedStudent && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedStudent(null)}></div>
+          <div className="bg-white rounded-[3rem] w-full max-w-3xl max-h-[85vh] flex flex-col relative z-10 shadow-2xl animate-fadeIn">
+            
+            <div className="flex justify-between items-center p-8 border-b border-slate-100 bg-slate-50/50 rounded-t-[3rem]">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-2xl">account_circle</span>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800 leading-tight">{selectedStudent.name}</h3>
+                  <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">ID: {selectedStudent.id}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedStudent(null)} className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-all shadow-sm">
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
+              {selectedStudent.history && selectedStudent.history.length > 0 ? (
+                <div className="space-y-6 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-1 before:bg-slate-100">
+                  {selectedStudent.history.map((record, index) => (
+                    <div key={index} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+                      <div className="flex items-center justify-center w-12 h-12 rounded-full border-4 border-white bg-indigo-100 text-indigo-600 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-md z-10">
+                        <span className="material-symbols-outlined text-xl">history_edu</span>
+                      </div>
+                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow hover:border-indigo-100 group-hover:-translate-y-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{record.date}</span>
+                        </div>
+                        <h4 className="text-base font-black text-slate-800 mb-3">{record.module}</h4>
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                          {formatDetail(record.detail)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center space-y-4">
+                  <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center shadow-inner">
+                    <span className="material-symbols-outlined text-4xl">folder_off</span>
+                  </div>
+                  <div>
+                    <p className="text-xl font-black text-slate-500">ไม่มีประวัติการบันทึก</p>
+                    <p className="text-sm font-bold text-slate-400">นักเรียนคนนี้ยังไม่ได้เริ่มทำกิจกรรมใดๆ</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[3rem] text-center">
+              <button onClick={() => setSelectedStudent(null)} className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-black shadow-md hover:bg-indigo-600 transition-colors active:scale-95">
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
