@@ -7,6 +7,11 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [school, setSchool] = useState('โรงเรียนวังโพรงพิทยาคม');
   const [inviteCode, setInviteCode] = useState('');
+  
+  // ✅ เพิ่ม State สำหรับปีการศึกษาและภาคเรียน
+  const [year, setYear] = useState('2569');
+  const [semester, setSemester] = useState('1');
+  
   const [isAccepted, setIsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -18,16 +23,19 @@ export default function Login({ onLogin }) {
     setLoading(true);
     try {
       if (isRegisterMode) {
+        // ✅ ส่งข้อมูลปีการศึกษาและภาคเรียนไปด้วยตอนสมัคร
         await fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
           body: JSON.stringify({
             action: "register",
-            userId: studentId,
+            id: studentId,
             name: studentName,
             password: password,
             school: school,
-            inviteCode: inviteCode
+            inviteCode: inviteCode,
+            year: year,
+            semester: semester
           })
         });
         alert('ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบอีกครั้งครับ');
@@ -38,13 +46,15 @@ export default function Login({ onLogin }) {
         const result = await response.json();
         if (result.status === "success") {
           onLogin({ 
-            id: studentId, 
+            id: result.id, 
             name: result.name,
             school: result.school,
-            role: result.role
+            role: result.role,
+            year: result.year,
+            semester: result.semester
           });
         } else {
-          alert(result.message);
+          alert(result.message || 'ID หรือรหัสผ่านไม่ถูกต้อง');
         }
       }
     } catch (error) {
@@ -57,7 +67,7 @@ export default function Login({ onLogin }) {
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-slate-50 overflow-hidden p-4 md:p-0 font-sans">
       
-      {/* ☁️ Soft Pastel Blobs (พื้นหลังแบบละมุน) */}
+      {/* ☁️ Background Decor */}
       <div aria-hidden className="absolute inset-0 w-full h-full z-0 pointer-events-none">
         <div className="absolute -top-32 -left-32 w-[40rem] h-[40rem] bg-blue-100/50 rounded-full blur-[120px] animate-blob1" />
         <div className="absolute top-1/2 left-1/2 w-[35rem] h-[35rem] bg-cyan-50/60 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 animate-blob2" />
@@ -72,15 +82,15 @@ export default function Login({ onLogin }) {
           <div className={`w-20 h-20 mx-auto rounded-[2rem] flex items-center justify-center text-white text-4xl mb-6 transition-all duration-500 shadow-lg ${isRegisterMode ? 'bg-gradient-to-br from-emerald-400 to-cyan-500' : 'bg-gradient-to-br from-blue-600 to-indigo-700'}`}>
             <span className="material-symbols-outlined text-4xl">{isRegisterMode ? 'person_add' : 'fingerprint'}</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-800 pb-2 pr-4 leading-tight">
-            The Financial <br/> Classroom
+          <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-800 pb-1 leading-tight">
+            Financial <span className="text-blue-600">Class</span>
           </h2>
           <p className="text-slate-400 font-bold text-[10px] uppercase mt-2 tracking-[0.3em]">
             {isRegisterMode ? 'Create New Account' : 'Welcome Back Student'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="w-full space-y-5">
+        <form onSubmit={handleSubmit} className="w-full space-y-4">
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">รหัสประจำตัว / เบอร์โทร</label>
             <div className="relative flex items-center group">
@@ -99,11 +109,31 @@ export default function Login({ onLogin }) {
 
           {/* Registration Fields */}
           {isRegisterMode && (
-            <div className="space-y-5 animate-fadeIn border-t border-slate-50 pt-6 mt-4">
+            <div className="space-y-4 animate-fadeIn border-t border-slate-50 pt-6 mt-2">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ชื่อ - นามสกุล</label>
                   <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-slate-700 transition-all" placeholder="ชื่อ-นามสกุล" required />
                 </div>
+                
+                {/* ✅ ส่วนที่เพิ่มใหม่: ปีการศึกษา และ ภาคเรียน */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ปีการศึกษา</label>
+                    <select value={year} onChange={(e) => setYear(e.target.value)} className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner">
+                      <option value="2569">2569</option>
+                      <option value="2568">2568</option>
+                      <option value="2567">2567</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">ภาคเรียน</label>
+                    <select value={semester} onChange={(e) => setSemester(e.target.value)} className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner">
+                      <option value="1">ภาคเรียนที่ 1</option>
+                      <option value="2">ภาคเรียนที่ 2</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">โรงเรียน / สถาบัน</label>
                   <input type="text" value={school} onChange={(e) => setSchool(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-slate-700 transition-all" required />
@@ -118,10 +148,10 @@ export default function Login({ onLogin }) {
           )}
 
           {/* PDPA Agreement */}
-          <div className={`flex items-start gap-3 p-4 rounded-2xl border transition-all mt-4 ${isAccepted ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
+          <div className={`flex items-start gap-3 p-4 rounded-2xl border transition-all mt-2 ${isAccepted ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
             <input type="checkbox" checked={isAccepted} onChange={(e) => setIsAccepted(e.target.checked)} className="mt-1 w-5 h-5 text-blue-600 rounded-lg cursor-pointer accent-blue-600" />
             <label className="text-[11px] text-slate-500 font-bold leading-relaxed cursor-pointer select-none" onClick={() => setIsAccepted(!isAccepted)}>
-              ยินยอมให้นำข้อมูลส่วนบุคคล (PDPA) ไปใช้ในการบันทึกคะแนนและออกเกียรติบัตรวิชาการ
+              ยินยอมให้นำข้อมูลไปใช้บันทึกคะแนนและออกเกียรติบัตร (PDPA)
             </label>
           </div>
 
@@ -130,16 +160,16 @@ export default function Login({ onLogin }) {
           </button>
         </form>
 
-        <div className="mt-10 text-center border-t border-slate-100 pt-8 w-full">
+        <div className="mt-8 text-center border-t border-slate-100 pt-6 w-full">
           <button 
             type="button"
             onClick={() => {
               setIsRegisterMode(!isRegisterMode);
               setPassword('');
             }} 
-            className="w-full py-4 text-sm font-black text-slate-500 bg-slate-100 hover:bg-slate-200 hover:text-slate-800 rounded-2xl transition-all active:scale-95"
+            className="w-full py-4 text-xs font-black text-slate-400 hover:text-slate-800 transition-all uppercase tracking-widest"
           >
-            {isRegisterMode ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? ลงทะเบียนฟรี'}
+            {isRegisterMode ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? ลงทะเบียนฟรีที่นี่'}
           </button>
         </div>
       </div>
