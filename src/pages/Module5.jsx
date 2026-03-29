@@ -97,64 +97,67 @@ export default function Module5LifePlanner({ user }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 md:px-10 font-sans animate-fadeIn relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 py-6 md:py-10 px-4 md:px-10 font-sans animate-fadeIn relative overflow-hidden">
       
-      {/* 🔮 Background Decor (Light Wealth Vibe) */}
-      <div className="absolute top-0 right-0 w-[45rem] h-[45rem] bg-cyan-100/40 rounded-full blur-[120px] -mr-48 -mt-48"></div>
-      <div className="absolute bottom-0 left-0 w-[35rem] h-[35rem] bg-blue-50/60 rounded-full blur-[100px] -ml-48 -mb-48"></div>
+      {/* 🔮 Background Decor */}
+      <div className="absolute top-0 right-0 w-[30rem] md:w-[45rem] h-[30rem] md:h-[45rem] bg-cyan-100/40 rounded-full blur-[80px] md:blur-[120px] -mr-32 -mt-32"></div>
+      <div className="absolute bottom-0 left-0 w-[25rem] md:w-[35rem] h-[25rem] md:h-[35rem] bg-blue-50/60 rounded-full blur-[80px] md:blur-[100px] -ml-32 -mb-32"></div>
 
-      <div className="max-w-7xl mx-auto space-y-10 relative z-10">
+      <div className="max-w-7xl mx-auto space-y-8 md:space-y-10 relative z-10">
         
         {/* Header Section */}
-        <section className="bg-white/60 backdrop-blur-2xl p-8 rounded-[3rem] border border-white shadow-xl shadow-slate-200/50 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-3xl flex items-center justify-center text-white text-5xl shadow-xl shadow-cyan-500/20 group hover:scale-110 transition-transform duration-500">
-              <span className="material-symbols-outlined text-5xl">rocket_launch</span>
+        <section className="bg-white/60 backdrop-blur-2xl p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] border border-white shadow-xl shadow-slate-200/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl md:rounded-3xl flex items-center justify-center text-white text-4xl md:text-5xl shadow-xl shadow-cyan-500/20 group hover:scale-110 transition-transform duration-500 shrink-0">
+              <span className="material-symbols-outlined text-4xl md:text-5xl">rocket_launch</span>
             </div>
             <div>
-              {/* ✅ pb-4 pr-4 กันแหว่ง */}
-              <h2 className="text-4xl font-black text-slate-800 tracking-tight pb-4 pr-4 leading-tight">The Wealth Galaxy</h2>
-              <p className="text-slate-500 font-bold italic">จำลองเส้นทางความมั่งคั่ง 30 ปีในจักรวาลของคุณ</p>
+              <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight pb-1 md:pb-4 pr-2 md:pr-4 leading-tight">The Wealth Galaxy</h2>
+              <p className="text-slate-500 font-bold italic text-xs md:text-base">จำลองเส้นทางความมั่งคั่ง 30 ปีในจักรวาลของคุณ</p>
             </div>
           </div>
-          <button onClick={() => setIsHistoryOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 font-black rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
+          <button onClick={() => setIsHistoryOpen(true)} className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 font-black rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm w-full md:w-auto">
             <span className="material-symbols-outlined text-cyan-500">history</span> 
-            ดูประวัติจำลองชีวิต
+            ประวัติจำลองชีวิต
           </button>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10">
           
           {/* 📥 Left Side: Inputs */}
           <div className="lg:col-span-5 space-y-8">
-            <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-white space-y-8 text-slate-800">
+            {/* ✅ ลด Padding สำหรับมือถือ */}
+            <div className="bg-white/90 backdrop-blur-2xl p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-white space-y-6 md:space-y-8 text-slate-800">
               
               <div className="space-y-4">
-                <h3 className="text-sm font-black text-cyan-600 uppercase tracking-[0.2em] flex items-center gap-2 border-b border-slate-100 pb-4">
-                  <span className="material-symbols-outlined">work</span> 1. ข้อมูลรายได้และรายจ่าย
+                <h3 className="text-xs md:text-sm font-black text-cyan-600 uppercase tracking-[0.2em] flex items-center gap-2 border-b border-slate-100 pb-3 md:pb-4">
+                  <span className="material-symbols-outlined text-lg md:text-xl">work</span> 1. ข้อมูลรายได้-รายจ่าย
                 </h3>
                 <InputField label="เงินเดือนเริ่มต้น" value={inputs.startingSalary} onChange={(e)=>setInputs({...inputs, startingSalary: Number(e.target.value)})} icon="payments" />
-                <div className="grid grid-cols-2 gap-4">
+                
+                {/* ✅ เปลี่ยนเป็น 1 คอลัมน์ในจอมือถือ (sm:grid-cols-2) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <InputField label="เงินเดือนขึ้น (%/ปี)" value={inputs.salaryIncrease} onChange={(e)=>setInputs({...inputs, salaryIncrease: Number(e.target.value)})} icon="trending_up" />
                   <InputField label="ระยะเวลาจำลอง (ปี)" value={inputs.yearsToSimulate} onChange={(e)=>setInputs({...inputs, yearsToSimulate: Number(e.target.value)})} icon="calendar_today" />
                 </div>
+                
                 <InputField label="รายจ่ายคงที่ต่อเดือน" value={inputs.monthlyExpense} onChange={(e)=>setInputs({...inputs, monthlyExpense: Number(e.target.value)})} icon="shopping_bag" />
               </div>
 
-              <div className="space-y-6 pt-2">
-                <h3 className="text-sm font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-2 border-b border-slate-100 pb-4">
-                  <span className="material-symbols-outlined">pie_chart</span> 2. กลยุทธ์การแบ่งเงิน (100%)
+              <div className="space-y-5 md:space-y-6 pt-2">
+                <h3 className="text-xs md:text-sm font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-2 border-b border-slate-100 pb-3 md:pb-4">
+                  <span className="material-symbols-outlined text-lg md:text-xl">pie_chart</span> 2. กลยุทธ์การแบ่งเงิน
                 </h3>
                 <SliderField label="กองทุนสำรอง (โต 2%)" value={allocations.emergency} color="blue" onChange={(e)=>setAllocations({...allocations, emergency: Number(e.target.value)})} />
                 <SliderField label="พอร์ตลงทุน (โต 8%)" value={allocations.wealth} color="emerald" onChange={(e)=>setAllocations({...allocations, wealth: Number(e.target.value)})} />
                 <SliderField label="เงินรางวัลชีวิต (กินใช้)" value={allocations.happiness} color="orange" onChange={(e)=>setAllocations({...allocations, happiness: Number(e.target.value)})} />
                 
-                <div className={`text-center p-4 rounded-2xl text-xs font-black transition-all shadow-inner border ${allocations.emergency + allocations.wealth + allocations.happiness === 100 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
-                  สัดส่วนรวมตอนนี้: {allocations.emergency + allocations.wealth + allocations.happiness}%
+                <div className={`text-center p-3 md:p-4 rounded-2xl text-[10px] md:text-xs font-black transition-all shadow-inner border ${allocations.emergency + allocations.wealth + allocations.happiness === 100 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
+                  สัดส่วนรวมตอนนี้: {allocations.emergency + allocations.wealth + allocations.happiness}% {allocations.emergency + allocations.wealth + allocations.happiness !== 100 && "(ต้องปรับให้ได้ 100%)"}
                 </div>
               </div>
 
-              <button onClick={calculateProjection} className="w-full py-6 bg-slate-900 text-white font-black rounded-3xl shadow-xl hover:bg-cyan-600 hover:scale-[1.02] transition-all active:scale-95 text-2xl flex items-center justify-center gap-4 group">
+              <button onClick={calculateProjection} className="w-full py-5 md:py-6 bg-slate-900 text-white font-black rounded-[1.5rem] md:rounded-3xl shadow-xl hover:bg-cyan-600 hover:scale-[1.02] transition-all active:scale-95 text-xl md:text-2xl flex items-center justify-center gap-3 md:gap-4 group mt-4">
                  <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">auto_mode</span>
                  รันผลจำลองชีวิต
               </button>
@@ -164,55 +167,58 @@ export default function Module5LifePlanner({ user }) {
           {/* 🏔️ Right Side: Result Visual */}
           <div className="lg:col-span-7">
             {isCalculated ? (
-              <div className="space-y-8 animate-fadeIn">
+              <div className="space-y-6 md:space-y-8 animate-fadeIn">
                 
                 {/* 💰 Total Wealth Card */}
-                <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-12 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden group">
-                  <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-[80px]"></div>
-                  <p className="text-cyan-100 font-black text-[11px] uppercase tracking-[0.4em] mb-3 opacity-80">ความมั่งคั่งสุทธิในปีที่ {inputs.yearsToSimulate}</p>
-                  <h3 className="text-6xl md:text-7xl font-black tracking-tighter pb-4 pr-4 leading-tight">
+                <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden group">
+                  <div className="absolute -right-10 -top-10 md:-right-20 md:-top-20 w-40 h-40 md:w-64 md:h-64 bg-white/10 rounded-full blur-[60px] md:blur-[80px]"></div>
+                  <p className="text-cyan-100 font-black text-[9px] md:text-[11px] uppercase tracking-[0.3em] md:tracking-[0.4em] mb-2 md:mb-3 opacity-80">ความมั่งคั่งสุทธิในปีที่ {inputs.yearsToSimulate}</p>
+                  
+                  {/* ✅ ปรับ Responsive Font Size ให้ตัวเลขไม่ล้นขอบจอ */}
+                  <h3 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter pb-2 md:pb-4 pr-2 md:pr-4 leading-tight break-words">
                     ฿{projectionData[projectionData.length-1].total.toLocaleString()}
                   </h3>
-                  <div className="flex items-center gap-2 mt-4 px-4 py-2 bg-white/10 rounded-full w-fit backdrop-blur-md border border-white/10">
-                    <span className="material-symbols-outlined text-sm">stars</span>
-                    <p className="text-[11px] font-black uppercase tracking-widest text-cyan-50">คำนวณภาษีและเงินเฟ้อแล้ว</p>
+                  
+                  <div className="flex items-center gap-2 mt-2 md:mt-4 px-3 md:px-4 py-1.5 md:py-2 bg-white/10 rounded-full w-fit backdrop-blur-md border border-white/10">
+                    <span className="material-symbols-outlined text-xs md:text-sm">stars</span>
+                    <p className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-cyan-50">คำนวณภาษีและเงินเฟ้อแล้ว</p>
                   </div>
                 </div>
 
                 {/* 📈 Chart Area */}
-                <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[3.5rem] shadow-2xl border border-white h-[480px] flex flex-col">
-                  <h4 className="font-black text-slate-800 mb-8 flex items-center gap-3">
-                    <span className="material-symbols-outlined text-blue-500 text-3xl">analytics</span>
+                <div className="bg-white/90 backdrop-blur-2xl p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border border-white h-[400px] md:h-[480px] flex flex-col">
+                  <h4 className="font-black text-slate-800 mb-6 md:mb-8 flex items-center gap-2 md:gap-3 text-sm md:text-base">
+                    <span className="material-symbols-outlined text-blue-500 text-2xl md:text-3xl">analytics</span>
                     วิถีการเติบโตของความมั่งคั่งสะสม
                   </h4>
                   <ResponsiveContainer width="100%" height="75%">
                     <AreaChart data={projectionData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="year" tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="year" tick={{fontSize: 9, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
                       <YAxis hide />
-                      <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'black' }} formatter={(v) => `฿${v.toLocaleString()}`} />
-                      <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '30px', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }} />
+                      <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'black', fontSize: '12px' }} formatter={(v) => `฿${v.toLocaleString()}`} />
+                      <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px', fontSize: '9px', fontWeight: '900', textTransform: 'uppercase' }} />
                       <Area stackId="1" type="monotone" dataKey="เงินสำรอง (2%)" stroke="#3b82f6" strokeWidth={3} fill="#3b82f640" />
                       <Area stackId="1" type="monotone" dataKey="พอร์ตลงทุน (8%)" stroke="#10b981" strokeWidth={3} fill="#10b98140" />
                       <Area stackId="1" type="monotone" dataKey="เงินใช้สอยสะสม" stroke="#f59e0b" strokeWidth={3} fill="#f59e0b40" />
                     </AreaChart>
                   </ResponsiveContainer>
                   
-                  <button onClick={saveToSheets} disabled={isSubmitting} className={`w-full mt-6 py-5 font-black rounded-[2rem] transition-all flex items-center justify-center gap-3 text-lg shadow-xl active:scale-95 ${isSubmitting ? 'bg-slate-100 text-slate-400' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-200'}`}>
-                    <span className="material-symbols-outlined">{isSubmitting ? 'sync' : 'cloud_done'}</span>
+                  <button onClick={saveToSheets} disabled={isSubmitting} className={`w-full mt-4 md:mt-6 py-4 md:py-5 font-black rounded-2xl md:rounded-[2rem] transition-all flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg shadow-xl active:scale-95 ${isSubmitting ? 'bg-slate-100 text-slate-400' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-200'}`}>
+                    <span className="material-symbols-outlined text-xl md:text-2xl">{isSubmitting ? 'sync' : 'cloud_done'}</span>
                     {submitStatus || 'บันทึกจักรวาลความมั่งคั่ง'}
                   </button>
                 </div>
               </div>
             ) : (
               /* 🛸 Placeholder State */
-              <div className="h-full min-h-[550px] bg-white rounded-[3.5rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center p-12 text-slate-300 text-center space-y-6">
-                <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center animate-pulse">
-                   <span className="material-symbols-outlined text-7xl opacity-30">explore</span>
+              <div className="h-full min-h-[400px] md:min-h-[550px] bg-white/80 rounded-[2.5rem] md:rounded-[3.5rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center p-8 md:p-12 text-slate-300 text-center space-y-4 md:space-y-6">
+                <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-50 rounded-full flex items-center justify-center animate-pulse">
+                   <span className="material-symbols-outlined text-6xl md:text-7xl opacity-30">explore</span>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-2xl font-black uppercase tracking-widest text-slate-400">Wealth Awaits</p>
-                  <p className="font-bold max-w-xs mx-auto text-slate-300 leading-relaxed">ปรับกลยุทธ์การจัดสรรเงินทางด้านซ้าย <br/>เพื่อร่างจักรวาลความมั่งคั่ง 30 ปีของคุณ</p>
+                  <p className="text-xl md:text-2xl font-black uppercase tracking-widest text-slate-400">Wealth Awaits</p>
+                  <p className="text-xs md:text-base font-bold max-w-xs mx-auto text-slate-400 leading-relaxed">ปรับกลยุทธ์การจัดสรรเงินทางด้านซ้าย <br/>เพื่อร่างจักรวาลความมั่งคั่ง 30 ปีของคุณ</p>
                 </div>
               </div>
             )}
@@ -225,20 +231,21 @@ export default function Module5LifePlanner({ user }) {
   );
 }
 
-// ✅ Sub-components (Light Polish)
+// ✅ ลด Padding ให้กรอกง่ายขึ้นในมือถือ
 function InputField({ label, value, onChange, icon }) {
   return (
-    <div className="space-y-1.5 pb-2 pr-4">
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3 block">{label}</label>
+    <div className="space-y-1.5 pb-2">
+      <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3 block">{label}</label>
       <div className="relative flex items-center group">
-        <div className="absolute left-4 w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-focus-within:bg-blue-50 group-focus-within:text-blue-500 transition-all duration-300">
-          <span className="material-symbols-outlined text-[20px]">{icon}</span>
+        <div className="absolute left-3 md:left-4 w-8 h-8 md:w-10 md:h-10 bg-slate-50 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 group-focus-within:bg-blue-50 group-focus-within:text-blue-500 transition-all duration-300">
+          <span className="material-symbols-outlined text-[18px] md:text-[20px]">{icon}</span>
         </div>
+        {/* ลด pl-12 ในมือถือ (จากเดิม pl-16) เพื่อให้พื้นที่พิมพ์กว้างขึ้น */}
         <input 
           type="text" 
           value={value === 0 ? '' : value} 
           onChange={onChange} 
-          className="w-full pl-16 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] focus:ring-4 focus:ring-blue-500/10 focus:bg-white focus:border-blue-200 outline-none font-black text-slate-800 text-lg transition-all shadow-inner placeholder:text-slate-200" 
+          className="w-full pl-14 md:pl-16 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-[1.5rem] focus:ring-4 focus:ring-blue-500/10 focus:bg-white focus:border-blue-200 outline-none font-black text-slate-800 text-base md:text-lg transition-all shadow-inner placeholder:text-slate-200" 
           placeholder="0" 
         />
       </div>
@@ -259,11 +266,11 @@ function SliderField({ label, value, onChange, color }) {
   };
 
   return (
-    <div className="space-y-3 mb-2">
-      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest px-2">
+    <div className="space-y-2 md:space-y-3 mb-2">
+      <div className="flex justify-between text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2">
         <span className="text-slate-400">{label}</span>
         <span 
-          className="text-[12px] font-black px-3 py-1 rounded-full bg-white border shadow-sm transition-all"
+          className="text-[10px] md:text-[12px] font-black px-2 md:px-3 py-1 rounded-full bg-white border shadow-sm transition-all"
           style={{ color: current.main, borderColor: `${current.main}40` }}
         >
           {value}%
@@ -285,14 +292,20 @@ function SliderField({ label, value, onChange, color }) {
         .custom-slider::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 24px;
-          height: 24px;
+          width: 20px;
+          height: 20px;
           background: white;
           border: 4px solid ${current.main};
           border-radius: 50%;
           cursor: pointer;
           box-shadow: 0 4px 12px ${current.main}30;
           transition: all 0.2s ease-in-out;
+        }
+        @media (min-width: 768px) {
+          .custom-slider::-webkit-slider-thumb {
+            width: 24px;
+            height: 24px;
+          }
         }
         .custom-slider::-webkit-slider-thumb:hover {
           transform: scale(1.15);

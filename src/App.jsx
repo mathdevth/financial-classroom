@@ -20,8 +20,8 @@ export default function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [totalViews, setTotalViews] = useState(0);
   
-  // ✅ ปรับเป็น true เพื่อให้เปิดเมนูค้างไว้ในตอนเริ่มต้น (สำหรับหน้าจอคอม)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); 
+  // ✅ ตรวจสอบขนาดหน้าจอก่อน ถ้าจอคอมให้กางเมนู ถ้าจอมือถือให้หุบเมนู
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024); 
 
   const [user, setUser] = useState(() => {
     try {
@@ -41,6 +41,17 @@ export default function App() {
       } catch (error) { console.error("Failed to fetch views:", error); }
     };
     fetchViews();
+
+    // ตัวเสริม: ช่วยปรับเมนูเวลาผู้ใช้หมุนจอมือถือ หรือขยายจอคอม
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(true);
+      } else {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const handleLogin = (userData) => {
@@ -58,7 +69,7 @@ export default function App() {
 
   const handlePageChange = (pageId) => {
     setActivePage(pageId);
-    // ✅ ปิดเมนูอัตโนมัติเฉพาะบนหน้าจอเล็กลง (Mobile/Tablet)
+    // ปิดเมนูอัตโนมัติเฉพาะบนหน้าจอเล็กลง (Mobile/Tablet)
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
