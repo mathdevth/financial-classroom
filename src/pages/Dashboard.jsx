@@ -19,6 +19,7 @@ export default function Dashboard({ user, setActivePage }) {
 
   useEffect(() => { fetchHistory(); }, [user.id]);
 
+  // ✅ อัปเดต formatDetail ให้อ่านค่าจาก Module 4 ได้ทั้ง 2 โหมด
   const formatDetail = (detail, moduleName) => {
     try {
       if (typeof detail !== 'string' || !detail.startsWith('{')) return detail;
@@ -28,7 +29,14 @@ export default function Dashboard({ user, setActivePage }) {
         return `รายได้: ฿${totalInc.toLocaleString()} | ภาษี: ฿${(data.taxToPay || 0).toLocaleString()}`;
       }
       if (moduleName.includes("Module 3")) return `เงินต้น: ฿${data.inputs?.amount?.toLocaleString() || 0} | ดอกเบี้ย: ${data.inputs?.rate || 0}%`;
-      if (moduleName.includes("Module 4")) return `เป้าหมายออม: ฿${Math.ceil(data.monthlySavingNeeded || 0).toLocaleString()}/ด.`;
+      if (moduleName.includes("Module 4")) {
+        // เช็คว่าบันทึกมาจากโหมดไหน แล้วแสดงผลลัพธ์ให้เหมาะสม
+        if (data.mode === 'FIND_TARGET') {
+           return `เป้าหมายเกษียณ: ฿${Math.round(data.targetFund || 0).toLocaleString()}`;
+        } else {
+           return `เป้าหมายออม: ฿${Math.ceil(data.monthlySavingNeeded || 0).toLocaleString()}/ด.`;
+        }
+      }
       if (moduleName.includes("Module 5")) return `จำลองชีวิต ${data.inputs?.yearsToSimulate || 0} ปี`;
       return detail; 
     } catch (e) { return detail; }
@@ -48,11 +56,11 @@ export default function Dashboard({ user, setActivePage }) {
 
   const checkStatus = (moduleName) => {
     const record = history.find(item => item.module && item.module.includes(moduleName));
-    if (record) return { status: 'สำเร็จ', score: formatDetail(record.detail, moduleName), done: true };
+    if (record) return { status: 'สำเร็จ', score: formatDetail(record.detail, record.module), done: true };
     return { status: 'ยังไม่เริ่ม', score: '-', done: false };
   };
 
-  // ✅ ลอจิกสำหรับ AI Advisor สรุปภาพรวม
+  // ✅ อัปเดตลอจิกสำหรับ AI Advisor ให้ฉลาดขึ้นกับ Module 4
   const getAISummary = () => {
     const m4 = history.find(h => h.module.includes("Module 4"));
     const m5 = history.find(h => h.module.includes("Module 5"));
@@ -62,11 +70,15 @@ export default function Dashboard({ user, setActivePage }) {
     let advice = `จากการวิเคราะห์แผนของคุณ `;
     if (m4) {
       const d = JSON.parse(m4.detail);
-      advice += `คุณต้องออมเงินเดือนละ ฿${Math.ceil(d.monthlySavingNeeded).toLocaleString()} เพื่อเป้าหมายเกษียณ `;
+      if (d.mode === 'FIND_TARGET') {
+         advice += `คุณตั้งเป้าหมายเงินเกษียณไว้ที่ ฿${Math.round(d.targetFund).toLocaleString()} `;
+      } else {
+         advice += `คุณต้องออมเงินเดือนละ ฿${Math.ceil(d.monthlySavingNeeded).toLocaleString()} เพื่อให้ถึงเป้าหมายเกษียณ `;
+      }
     }
     if (m5) {
       const d = JSON.parse(m5.detail);
-      advice += `และหากทำตามแผนจักรวาลความมั่งคั่ง ในปีที่ ${d.inputs.yearsToSimulate} คุณจะมีเงินรวมประมาณ ฿${Math.round(d.totalWealth).toLocaleString()} ครับ!`;
+      advice += `และหากทำตามแผนจักรวาลความมั่งคั่ง ในปีที่ ${d.inputs?.yearsToSimulate || 30} คุณจะมีเงินรวมประมาณ ฿${Math.round(d.totalWealth).toLocaleString()} ครับ!`;
     }
     return advice;
   };
@@ -162,7 +174,7 @@ export default function Dashboard({ user, setActivePage }) {
             </section>
           </div>
 
-          {/* 🤖 ✅ Right: AI Advisor Card (ดึงกลับมาแล้วครับ) */}
+          {/* 🤖 ✅ Right: AI Advisor Card */}
           <div className="lg:col-span-4">
             <section className="bg-slate-900 rounded-[3.5rem] p-10 text-white shadow-2xl h-full relative overflow-hidden group border border-white/5">
               <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-500/10 rounded-full blur-[50px]"></div>

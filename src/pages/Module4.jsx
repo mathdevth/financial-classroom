@@ -121,8 +121,10 @@ export default function Module4RetirementPlanner({ user }) {
         method: "POST", mode: "no-cors",
         body: JSON.stringify({
           action: "save", userId: user.id,
-          moduleName: `Module 4: ${calcMode}`,
-          actionData: JSON.stringify({ ...planInputs, ...result }) 
+          // ✅ เปลี่ยนชื่อโมดูลกลับมาเป็นชื่อดั้งเดิม เพื่อให้ Dashboard ดึงข้อมูลไปแสดงได้ถูกต้อง
+          moduleName: "Module 4: Retirement Mountain",
+          // ยัดโหมด (calcMode) เข้าไปใน actionData แทน เพื่อให้เรายังรู้ว่านักเรียนใช้โหมดไหนบันทึกมา
+          actionData: JSON.stringify({ mode: calcMode, ...planInputs, ...result }) 
         })
       });
       setSubmitStatus('บันทึกแผนสำเร็จ! ✅');
@@ -320,12 +322,8 @@ export default function Module4RetirementPlanner({ user }) {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      
-                      {/* ✅ แสดงอายุที่เส้นแกน X */}
                       <XAxis dataKey="age" tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
                       <YAxis hide />
-                      
-                      {/* ✅ แปลงข้อความ Tooltip เป็นภาษาไทย และเพิ่มคำว่า "อายุ" ให้ชัดเจน */}
                       <Tooltip 
                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'black', fontSize: '12px' }} 
                         formatter={(value) => [`฿${value.toLocaleString()}`, 'เงินคงเหลือ']} 
@@ -364,7 +362,14 @@ export default function Module4RetirementPlanner({ user }) {
         </div>
       </div>
 
-      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} userId={user.id} moduleName="Module 4: Retirement Mountain" GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} />
+      {/* ✅ แก้ชื่อ Module ตรง History ให้ตรงกับชื่อตอนบันทึก */}
+      <HistoryModal 
+        isOpen={isHistoryOpen} 
+        onClose={() => setIsHistoryOpen(false)} 
+        userId={user.id} 
+        moduleName="Module 4: Retirement Mountain" 
+        GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} 
+      />
     </div>
   );
 }

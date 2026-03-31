@@ -17,14 +17,13 @@ export default function AdminDashboard({ user }) {
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
+  // ✅ อัปเดต labelMap เพิ่มคำแปลของ Module 4 ใหม่เข้าไป
   const labelMap = {
     inputs: 'ข้อมูลนำเข้า', amount: 'จำนวนเงิน', rate: 'ดอกเบี้ย/ผลตอบแทน', years: 'ระยะเวลา (ปี)',
     everyXMonths: 'คิดดอกทุกๆ (เดือน)', calcType: 'ประเภทคำนวณ', currentAge: 'อายุปัจจุบัน',
     retireAge: 'อายุเกษียณ', lifeExpectancy: 'อายุขัย', monthlyExpense: 'รายจ่ายต่อเดือน',
     startingSalary: 'เงินเดือนเริ่มต้น', salaryIncrease: 'เงินเดือนขึ้น (%/ปี)',
     yearsToSimulate: 'ระยะเวลาจำลอง (ปี)', totalWealth: 'ความมั่งคั่งรวม',
-    monthlySavingNeeded: 'ต้องออมต่อเดือน', targetFund: 'เป้าหมายเงินเกษียณ',
-    monthlyLate: 'หากเริ่มช้า (ต่อเดือน)', costMultiplier: 'ภาระเพิ่มขึ้น (เท่า)',
     isCalculated: 'สถานะการคำนวณ', allocations: 'สัดส่วนเงิน', emergency: 'เงินสำรอง', 
     wealth: 'พอร์ตลงทุน', happiness: 'เงินใช้สอย', FV_SINGLE: 'เงินก้อนเดียว', 
     PV_SINGLE: 'หาเงินต้นที่ต้องใช้', FVA_ORD: 'ออมรายงวด', FVA_DUE: 'ออมรายงวด (ต้นงวด)',
@@ -34,7 +33,16 @@ export default function AdminDashboard({ user }) {
     lifeInsurance: 'ประกันชีวิต', healthInsurance: 'ประกันสุขภาพ', socialSecurity: 'ประกันสังคม',
     rmf: 'กองทุน RMF', ssf: 'กองทุน SSF', pension: 'ประกันบำนาญ', donationGeneral: 'บริจาคทั่วไป',
     donationEdu: 'บริจาคการศึกษา', homeLoanInterest: 'ดอกเบี้ยบ้าน',
-    grade: 'ชั้น', room: 'ห้อง', number: 'เลขที่'
+    grade: 'ชั้น', room: 'ห้อง', number: 'เลขที่',
+    // --- ตัวแปรใหม่ของ Module 4 ---
+    mode: 'โหมดคำนวณ',
+    FIND_TARGET: 'หาเป้าหมายเงินเกษียณ',
+    FIND_SAVING: 'หาเงินออมต่อเดือน',
+    targetFundInput: 'เป้าหมายที่ตั้งไว้',
+    targetFund: 'ยอดเงินเกษียณเป้าหมาย',
+    monthlySavingNeeded: 'ต้องออมต่อเดือน',
+    monthlyLate: 'หากเริ่มช้า 10 ปี (ด.)',
+    costMultiplier: 'ภาระเพิ่มขึ้น (เท่า)'
   };
 
   const fetchAdminData = async () => {
@@ -107,11 +115,19 @@ export default function AdminDashboard({ user }) {
             else if (value !== "" && value !== null) {
               let displayVal = value;
               if (typeof value === 'boolean') displayVal = value ? 'ใช่' : 'ไม่';
-              else if (typeof value === 'number') displayVal = value.toLocaleString();
+              else if (typeof value === 'number') {
+                  // ถ้าเป็นทศนิยมให้ปัดเศษเพื่อให้ดูง่ายขึ้น (เว้นแต่เป็น % อาจจะเก็บทศนิยมไว้)
+                  displayVal = (key === 'costMultiplier' || key === 'rate') ? value : Math.round(value).toLocaleString();
+              }
               else displayVal = labelMap[value] || value;
+              
               const cleanKey = key.replace('inputs_', '').replace('allocations_', '');
               const label = labelMap[cleanKey] || cleanKey;
-              badges.push(<span key={key} className="inline-block bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-[10px] mr-2 mb-2 font-black border border-indigo-100"><span className="opacity-50 mr-1">{label}:</span> {displayVal}</span>);
+              
+              // ซ่อนตัวแปรที่รกๆ หรือไม่จำเป็นต้องโชว์
+              if (cleanKey !== 'isCalculated' && cleanKey !== 'password' && cleanKey !== 'targetFundInput') {
+                 badges.push(<span key={key} className="inline-block bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-[10px] mr-2 mb-2 font-black border border-indigo-100"><span className="opacity-50 mr-1">{label}:</span> {displayVal}</span>);
+              }
             }
           });
         };
@@ -245,7 +261,7 @@ export default function AdminDashboard({ user }) {
         </div>
       </div>
 
-      {/* Modal Timeline (เหมือนเดิม) */}
+      {/* Modal Timeline */}
       {selectedStudent && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedStudent(null)}></div>
