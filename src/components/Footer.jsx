@@ -32,6 +32,13 @@ export default function Footer({ totalViews = 0 }) {
           <p className="text-blue-600 text-sm font-black uppercase tracking-widest">กลุ่มสาระการเรียนรู้คณิตศาสตร์</p>
           <p className="text-slate-500 text-xs font-bold">โรงเรียนวังโพรงพิทยาคม สพม.พลอต.</p>
         </div>
+
+        {/* ✅ เพิ่มข้อมูลผู้ร่วมพัฒนาในหน้า Contact ด้วย */}
+        <div className="pt-5 mt-5 border-t border-slate-100 space-y-1">
+          <p className="text-sm font-black text-slate-700">ร่วมพัฒนา: น.ส.ปฐมาภรณ์ อวชัย</p>
+          <p className="text-emerald-600 text-xs font-bold">ผู้ชำนาญ สาขาคณิตศาสตร์มัธยมศึกษา สสวท.</p>
+        </div>
+
         <div className="grid grid-cols-1 gap-3 mt-8">
           <a href="mailto:achittapon.boonrat@wppschool.ac.th" className="flex items-center justify-center gap-3 py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:border-blue-300 hover:shadow-md transition-all text-slate-700 font-black group">
             <span className="material-symbols-outlined text-blue-500 group-hover:scale-110 transition-transform">mail</span>
@@ -60,16 +67,29 @@ export default function Footer({ totalViews = 0 }) {
         
         {/* 👤 Left: Creator Showcase */}
         <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-slate-100 to-white border border-white shadow-sm flex items-center justify-center">
-            <span className="material-symbols-outlined text-blue-500">draw</span>
+          <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-slate-100 to-white border border-white shadow-sm flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-blue-500 text-2xl">draw</span>
           </div>
-          <div className="text-center md:text-left space-y-1">
-            <div className="flex items-center justify-center md:justify-start gap-2">
-              <span className="text-sm font-black text-slate-800 tracking-tight">สร้างสรรค์โดย <span className="text-blue-600">ครูอชิตพล บุณรัตน์</span></span>
+          <div className="text-center md:text-left space-y-2">
+            <div>
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <span className="text-sm font-black text-slate-800 tracking-tight">สร้างสรรค์โดย <span className="text-blue-600">ครูอชิตพล บุณรัตน์</span></span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-2 opacity-70 mt-0.5">
+                <span className="material-symbols-outlined text-[14px] text-rose-400">school</span>
+                <span className="text-[10px] font-black text-slate-500 tracking-widest">โรงเรียนวังโพรงพิทยาคม สพม.พลอต.</span>
+              </div>
             </div>
-            <div className="flex items-center justify-center md:justify-start gap-2 opacity-70">
-              <span className="material-symbols-outlined text-[14px] text-rose-400">school</span>
-              <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">โรงเรียนวังโพรงพิทยาคม สพม.พลอต.</span>
+            
+            {/* ✅ เพิ่มส่วนผู้ร่วมพัฒนา สสวท. ตรงนี้ */}
+            <div className="pt-1.5 border-t border-slate-200/60">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <span className="text-xs font-black text-slate-700 tracking-tight">ร่วมพัฒนา <span className="text-emerald-600">น.ส.ปฐมาภรณ์ อวชัย</span></span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-1.5 opacity-70 mt-0.5">
+                <span className="material-symbols-outlined text-[13px] text-emerald-500">account_balance</span>
+                <span className="text-[9px] font-bold text-slate-500 tracking-wider">ผู้ชำนาญ สาขาคณิตศาสตร์มัธยมศึกษา สสวท.</span>
+              </div>
             </div>
           </div>
         </div>

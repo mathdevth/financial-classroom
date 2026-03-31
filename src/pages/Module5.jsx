@@ -96,6 +96,44 @@ export default function Module5LifePlanner({ user }) {
     finally { setIsSubmitting(false); }
   };
 
+  // ✅ ฟังก์ชันแสดงสูตรและคอนเซปต์ของ Module 5
+  const renderFormulaBox = () => {
+    return (
+      <div className="bg-slate-900 p-6 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group mb-6">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/20 rounded-full blur-[40px]"></div>
+        
+        <div className="flex items-center gap-3 mb-6 opacity-80 border-b border-white/10 pb-3">
+          <span className="material-symbols-outlined text-cyan-400">account_tree</span>
+          <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400">Financial Flow Model</p>
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-xs md:text-sm text-cyan-100/80 mb-2 font-bold text-center whitespace-nowrap">
+            วิธีหาเงินคงเหลือเพื่อนำไปจัดสรร (Surplus)
+          </p>
+          <div className="overflow-x-auto custom-scrollbar pb-2">
+            <div className="flex items-center justify-center gap-2 text-[11px] sm:text-sm md:text-base font-black text-cyan-50 whitespace-nowrap w-max mx-auto">
+              <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30">รายได้ต่อปี</span>
+              <span className="text-cyan-400 font-bold">-</span>
+              <span className="bg-rose-500/20 text-rose-300 px-3 py-1.5 rounded-lg border border-rose-500/30">ภาษีรายปี</span>
+              <span className="text-cyan-400 font-bold">-</span>
+              <span className="bg-orange-500/20 text-orange-300 px-3 py-1.5 rounded-lg border border-orange-500/30">ค่าใช้จ่ายรายปี</span>
+              <span className="text-cyan-400 font-bold">=</span>
+              <span className="bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-lg border border-blue-500/30">เงินก้อนเพื่อจัดสรร</span>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <p className="text-[10px] md:text-xs font-bold text-slate-400 text-center leading-relaxed">
+              *หมายเหตุ: โปรแกรมจะนำ <strong className="text-blue-300">"เงินก้อนเพื่อจัดสรร"</strong> ไปแบ่งตามเปอร์เซ็นต์ที่คุณกำหนดด้านล่าง <br className="hidden md:block" />
+              และนำไปคำนวณทบต้นด้วยดอกเบี้ยของแต่ละกองทุนในทุกๆ ปี
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 py-6 md:py-10 px-4 md:px-10 font-sans animate-fadeIn relative overflow-hidden">
       
@@ -126,16 +164,17 @@ export default function Module5LifePlanner({ user }) {
           
           {/* 📥 Left Side: Inputs */}
           <div className="lg:col-span-5 space-y-8">
-            {/* ✅ ลด Padding สำหรับมือถือ */}
             <div className="bg-white/90 backdrop-blur-2xl p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-white space-y-6 md:space-y-8 text-slate-800">
               
+              {/* ✅ แสดงสูตรการทำงาน */}
+              {renderFormulaBox()}
+
               <div className="space-y-4">
                 <h3 className="text-xs md:text-sm font-black text-cyan-600 uppercase tracking-[0.2em] flex items-center gap-2 border-b border-slate-100 pb-3 md:pb-4">
                   <span className="material-symbols-outlined text-lg md:text-xl">work</span> 1. ข้อมูลรายได้-รายจ่าย
                 </h3>
                 <InputField label="เงินเดือนเริ่มต้น" value={inputs.startingSalary} onChange={(e)=>setInputs({...inputs, startingSalary: Number(e.target.value)})} icon="payments" />
                 
-                {/* ✅ เปลี่ยนเป็น 1 คอลัมน์ในจอมือถือ (sm:grid-cols-2) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <InputField label="เงินเดือนขึ้น (%/ปี)" value={inputs.salaryIncrease} onChange={(e)=>setInputs({...inputs, salaryIncrease: Number(e.target.value)})} icon="trending_up" />
                   <InputField label="ระยะเวลาจำลอง (ปี)" value={inputs.yearsToSimulate} onChange={(e)=>setInputs({...inputs, yearsToSimulate: Number(e.target.value)})} icon="calendar_today" />
@@ -174,7 +213,6 @@ export default function Module5LifePlanner({ user }) {
                   <div className="absolute -right-10 -top-10 md:-right-20 md:-top-20 w-40 h-40 md:w-64 md:h-64 bg-white/10 rounded-full blur-[60px] md:blur-[80px]"></div>
                   <p className="text-cyan-100 font-black text-[9px] md:text-[11px] uppercase tracking-[0.3em] md:tracking-[0.4em] mb-2 md:mb-3 opacity-80">ความมั่งคั่งสุทธิในปีที่ {inputs.yearsToSimulate}</p>
                   
-                  {/* ✅ ปรับ Responsive Font Size ให้ตัวเลขไม่ล้นขอบจอ */}
                   <h3 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter pb-2 md:pb-4 pr-2 md:pr-4 leading-tight break-words">
                     ฿{projectionData[projectionData.length-1].total.toLocaleString()}
                   </h3>
@@ -196,11 +234,30 @@ export default function Module5LifePlanner({ user }) {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="year" tick={{fontSize: 9, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
                       <YAxis hide />
-                      <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'black', fontSize: '12px' }} formatter={(v) => `฿${v.toLocaleString()}`} />
-                      <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px', fontSize: '9px', fontWeight: '900', textTransform: 'uppercase' }} />
-                      <Area stackId="1" type="monotone" dataKey="เงินสำรอง (2%)" stroke="#3b82f6" strokeWidth={3} fill="#3b82f640" />
-                      <Area stackId="1" type="monotone" dataKey="พอร์ตลงทุน (8%)" stroke="#10b981" strokeWidth={3} fill="#10b98140" />
+                      
+                      {/* ✅ แปลง Tooltip ให้แสดงภาษาไทย */}
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'black', fontSize: '12px' }} 
+                        formatter={(value, name) => {
+                          let label = name;
+                          if (name === 'total') label = 'รวมความมั่งคั่งสุทธิ';
+                          return [`฿${value.toLocaleString()}`, label];
+                        }}
+                      />
+                      
+                      {/* ✅ แปลง Legend (คำอธิบายสีของกราฟ) ให้เป็นภาษาไทย */}
+                      <Legend 
+                        verticalAlign="top" 
+                        wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }} 
+                        formatter={(value) => {
+                          if (value === 'total') return 'ความมั่งคั่งรวม';
+                          return value;
+                        }}
+                      />
+                      
                       <Area stackId="1" type="monotone" dataKey="เงินใช้สอยสะสม" stroke="#f59e0b" strokeWidth={3} fill="#f59e0b40" />
+                      <Area stackId="1" type="monotone" dataKey="พอร์ตลงทุน (8%)" stroke="#10b981" strokeWidth={3} fill="#10b98140" />
+                      <Area stackId="1" type="monotone" dataKey="เงินสำรอง (2%)" stroke="#3b82f6" strokeWidth={3} fill="#3b82f640" />
                     </AreaChart>
                   </ResponsiveContainer>
                   
@@ -231,16 +288,15 @@ export default function Module5LifePlanner({ user }) {
   );
 }
 
-// ✅ ลด Padding ให้กรอกง่ายขึ้นในมือถือ
+// ✅ ลด Padding + เพิ่ม normal-case ป้องกันตัวพิมพ์ใหญ่
 function InputField({ label, value, onChange, icon }) {
   return (
     <div className="space-y-1.5 pb-2">
-      <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3 block">{label}</label>
+      <label className="text-[9px] md:text-[10px] font-black text-slate-400 normal-case tracking-widest ml-3 block">{label}</label>
       <div className="relative flex items-center group">
         <div className="absolute left-3 md:left-4 w-8 h-8 md:w-10 md:h-10 bg-slate-50 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 group-focus-within:bg-blue-50 group-focus-within:text-blue-500 transition-all duration-300">
           <span className="material-symbols-outlined text-[18px] md:text-[20px]">{icon}</span>
         </div>
-        {/* ลด pl-12 ในมือถือ (จากเดิม pl-16) เพื่อให้พื้นที่พิมพ์กว้างขึ้น */}
         <input 
           type="text" 
           value={value === 0 ? '' : value} 
@@ -267,7 +323,7 @@ function SliderField({ label, value, onChange, color }) {
 
   return (
     <div className="space-y-2 md:space-y-3 mb-2">
-      <div className="flex justify-between text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2">
+      <div className="flex justify-between text-[9px] md:text-[10px] font-black normal-case tracking-widest px-2">
         <span className="text-slate-400">{label}</span>
         <span 
           className="text-[10px] md:text-[12px] font-black px-2 md:px-3 py-1 rounded-full bg-white border shadow-sm transition-all"

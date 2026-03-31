@@ -70,17 +70,18 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-slate-50 overflow-hidden p-4 md:p-0 font-sans">
+    // ✅ เปลี่ยนเป็น flex-col และเพิ่ม py-10 เพื่อให้มีพื้นที่รองรับกล่อง Credits ด้านล่าง
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-slate-50 overflow-x-hidden overflow-y-auto p-4 py-10 md:p-6 font-sans">
       
       {/* ☁️ Background Decor */}
-      <div aria-hidden className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+      <div aria-hidden className="absolute inset-0 w-full h-full z-0 pointer-events-none overflow-hidden fixed">
         <div className="absolute -top-32 -left-32 w-[40rem] h-[40rem] bg-blue-100/50 rounded-full blur-[120px] animate-blob1" />
         <div className="absolute top-1/2 left-1/2 w-[35rem] h-[35rem] bg-cyan-50/60 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 animate-blob2" />
         <div className="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-emerald-50/50 rounded-full blur-[120px] animate-blob3" />
       </div>
 
       {/* 🏰 Snowy Glass Card */}
-      <div className="relative z-10 w-full max-w-md mx-auto rounded-[3.5rem] border border-white bg-white/80 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] px-6 py-10 md:px-12 md:py-14 flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-md mx-auto rounded-[3.5rem] border border-white bg-white/80 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] px-6 py-10 md:px-12 md:py-14 flex flex-col items-center transition-all duration-500">
         
         {/* Header Section */}
         <div className="text-center mb-10 select-none w-full">
@@ -127,7 +128,6 @@ export default function Login({ onLogin }) {
                   <input type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} className="w-full px-6 py-3 bg-cyan-50/50 border border-cyan-100 rounded-2xl focus:ring-4 focus:ring-cyan-500/10 outline-none font-bold text-cyan-800 transition-all" placeholder="เว้นว่างไว้สำหรับนักเรียน" />
                 </div>
 
-                {/* ✅ แสดงฟิลด์ข้อมูลการศึกษาเฉพาะเมื่อเป็นนักเรียน */}
                 {!isTeacher && (
                   <div className="space-y-4 animate-fadeIn">
                     <div className="grid grid-cols-2 gap-4">
@@ -206,6 +206,36 @@ export default function Login({ onLogin }) {
         </div>
       </div>
 
+      {/* 🎓 Developer Credits Section (วางใต้กล่อง Login อย่างสวยงาม) */}
+      <div className="relative z-10 mt-8 w-full max-w-md bg-white/50 backdrop-blur-xl border border-white/80 rounded-[2rem] p-5 shadow-sm hover:shadow-md transition-all duration-300 animate-fadeIn">
+        <div className="flex flex-col gap-3">
+          {/* ครูอชิตพล */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[18px]">draw</span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">สร้างสรรค์โดย</p>
+              <p className="text-sm font-black text-slate-700 leading-tight">ครูอชิตพล บุณรัตน์ <span className="text-[10px] font-bold text-slate-400 ml-1">(ร.ร.วังโพรงพิทยาคม)</span></p>
+            </div>
+          </div>
+          
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+
+          {/* ครูปฐมาภรณ์ */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[18px]">school</span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">ร่วมพัฒนาโดย</p>
+              <p className="text-sm font-black text-slate-700 leading-tight">น.ส.ปฐมาภรณ์ อวชัย</p>
+              <p className="text-[9px] font-bold text-emerald-600 tracking-wide mt-0.5 leading-tight">ผู้ชำนาญ สาขาคณิตศาสตร์มัธยมศึกษา สสวท.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <style>{`
         @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-20px, 40px) scale(1.1);} }
         @keyframes blob2 { 0%,100%{transform:translate(-50%,-50%) scale(1.1);} 50%{transform:translate(-52%, -48%) scale(1);} }
@@ -213,8 +243,8 @@ export default function Login({ onLogin }) {
         .animate-blob1 { animation: blob1 15s ease-in-out infinite alternate; }
         .animate-blob2 { animation: blob2 18s ease-in-out infinite alternate; }
         .animate-blob3 { animation: blob3 12s ease-in-out infinite alternate; }
-        .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );
