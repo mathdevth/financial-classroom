@@ -17,7 +17,7 @@ export default function AdminDashboard({ user }) {
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ✅ อัปเดต labelMap เพิ่มคำแปลของ กอช. และ ประเภทค่าเช่า
+  // ✅ อัปเดต labelMap เพิ่มคำแปลของ กอช., กบข./PVD และ ประเภทค่าเช่า
   const labelMap = {
     inputs: 'ข้อมูลนำเข้า', amount: 'จำนวนเงิน', rate: 'ดอกเบี้ย/ผลตอบแทน', years: 'ระยะเวลา (ปี)',
     everyXMonths: 'คิดดอกทุกๆ (เดือน)', calcType: 'ประเภทคำนวณ', currentAge: 'อายุปัจจุบัน',
@@ -32,7 +32,8 @@ export default function AdminDashboard({ user }) {
     spouse: 'คู่สมรส', parentsCount: 'พ่อแม่ (60+)', childrenOld: 'ลูกคนแรก', childrenNew: 'ลูกคนที่ 2+',
     lifeInsurance: 'ประกันชีวิต', healthInsurance: 'ประกันสุขภาพ', socialSecurity: 'ประกันสังคม',
     rmf: 'กองทุน RMF', ssf: 'กองทุน SSF', pension: 'ประกันบำนาญ', donationGeneral: 'บริจาคทั่วไป',
-    donationEdu: 'บริจาคการศึกษา', homeLoanInterest: 'ดอกเบี้ยบ้าน', nsf: 'กองทุน กอช.',
+    donationEdu: 'บริจาคการศึกษา', homeLoanInterest: 'ดอกเบี้ยบ้าน', 
+    nsf: 'กองทุน กอช.', pvd: 'กบข./กองทุนสำรองฯ', // ✅ เพิ่ม pvd ตรงนี้
     m40_5_type: 'ประเภทค่าเช่า', house: 'บ้าน/อาคาร/รถ', agri_land: 'ที่ดินเกษตรกรรม', other_land: 'ที่ดินอื่นๆ',
     grade: 'ชั้น', room: 'ห้อง', number: 'เลขที่',
     // --- ตัวแปรใหม่ของ Module 4 ---
@@ -117,7 +118,6 @@ export default function AdminDashboard({ user }) {
               let displayVal = value;
               if (typeof value === 'boolean') displayVal = value ? 'ใช่' : 'ไม่';
               else if (typeof value === 'number') {
-                  // ถ้าเป็นทศนิยมให้ปัดเศษเพื่อให้ดูง่ายขึ้น (เว้นแต่เป็น % อาจจะเก็บทศนิยมไว้)
                   displayVal = (key === 'costMultiplier' || key === 'rate') ? value : Math.round(value).toLocaleString();
               }
               else displayVal = labelMap[value] || value;
@@ -125,7 +125,6 @@ export default function AdminDashboard({ user }) {
               const cleanKey = key.replace('inputs_', '').replace('allocations_', '');
               const label = labelMap[cleanKey] || cleanKey;
               
-              // ซ่อนตัวแปรที่รกๆ หรือไม่จำเป็นต้องโชว์
               if (cleanKey !== 'isCalculated' && cleanKey !== 'password' && cleanKey !== 'targetFundInput') {
                  badges.push(<span key={key} className="inline-block bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-[10px] mr-2 mb-2 font-black border border-indigo-100"><span className="opacity-50 mr-1">{label}:</span> {displayVal}</span>);
               }

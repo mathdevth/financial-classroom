@@ -19,7 +19,7 @@ export default function Module2TaxSimulator({ user }) {
     spouse: false, parentsCount: 0, childrenOld: 0, childrenNew: 0, 
     // กลุ่ม 2
     socialSecurity: 0, lifeInsurance: 0, healthInsurance: 0, parentsHealth: 0,
-    rmf: 0, ssf: 0, pension: 0, thaiEsg: 0, nsf: 0, // ✅ เพิ่ม กอช. (nsf)
+    rmf: 0, ssf: 0, pension: 0, thaiEsg: 0, nsf: 0, pvd: 0, // ✅ เพิ่ม pvd (กบข./กองทุนสำรองเลี้ยงชีพ)
     // กลุ่ม 4
     homeLoanInterest: 0, newHome: 0,
     // กลุ่ม 3
@@ -64,11 +64,15 @@ export default function Module2TaxSimulator({ user }) {
     const dedLifeHealth = Math.min(deductions.lifeInsurance + rawHealth, 100000);
     const dedParentsHealth = Math.min(deductions.parentsHealth, 15000);
     
+    // ✅ เพิ่มการคำนวณ PVD / กบข. (ลดหย่อนได้ 15% ของรายได้ และไม่เกิน 5 แสน)
+    const dedPVD = Math.min(deductions.pvd || 0, 500000, totalIncome * 0.15);
     const dedRMF = Math.min(deductions.rmf, 500000, totalIncome * 0.3);
     const dedSSF = Math.min(deductions.ssf, 200000, totalIncome * 0.3);
     const dedPension = Math.min(deductions.pension, 200000, totalIncome * 0.15);
-    const dedNSF = Math.min(deductions.nsf || 0, 30000); // ✅ กอช. สูงสุด 30,000
-    const totalInvest = Math.min(dedRMF + dedSSF + dedPension + dedNSF, 500000); // ✅ รวมโควตา 5 แสน
+    const dedNSF = Math.min(deductions.nsf || 0, 30000); 
+    
+    // ✅ รวมโควตากลุ่มเกษียณทั้งหมดต้องไม่เกิน 5 แสน
+    const totalInvest = Math.min(dedPVD + dedRMF + dedSSF + dedPension + dedNSF, 500000); 
     
     const dedThaiEsg = Math.min(deductions.thaiEsg, 300000, totalIncome * 0.3);
     const group2 = dedSocial + dedLifeHealth + dedParentsHealth + totalInvest + dedThaiEsg;
@@ -133,7 +137,8 @@ export default function Module2TaxSimulator({ user }) {
       if (unusedLife > 5000) aiMessages.push(`🛡️ ประกันชีวิต/สุขภาพ: คุณยังมีโควตาซื้อประกันเพิ่มได้อีก ฿${unusedLife.toLocaleString()}`);
 
       const unusedRetire = Math.max(0, 500000 - totalInvest);
-      if (unusedRetire > 10000) aiMessages.push(`📈 กองทุนเกษียณ (RMF/SSF/บำนาญ/กอช.): ยังลงทุนรวมกันเพิ่มได้อีก ฿${unusedRetire.toLocaleString()}`); // ✅ AI แนะนำรวม กอช.
+      // ✅ เพิ่มคำแนะนำ กบข./PVD เข้าไปใน AI Message
+      if (unusedRetire > 10000) aiMessages.push(`📈 กองทุนเกษียณ (กบข./PVD/RMF/SSF/บำนาญ/กอช.): ยังลงทุนรวมกันเพิ่มได้อีก ฿${unusedRetire.toLocaleString()}`);
 
       if (deductions.donationEdu === 0) aiMessages.push(`🎓 ทริคพิเศษ: บริจาคให้สถานศึกษาหรือโรงพยาบาลรัฐ ผ่าน e-Donation สามารถนำมาหักลดหย่อนได้ถึง 2 เท่าเลยนะครับ!`);
     }
@@ -231,7 +236,6 @@ export default function Module2TaxSimulator({ user }) {
           </div>
         )}
 
-        {/* ✅ ปรับปรุง Labels หมวดลดหย่อนให้ชัดเจนมากยิ่งขึ้น */}
         {activeTab === 'deduction' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 animate-fadeIn">
             <FormSection title="กลุ่ม 1: ส่วนตัวและครอบครัว" icon="family_restroom">
@@ -249,7 +253,9 @@ export default function Module2TaxSimulator({ user }) {
               <Input label="ประกันชีวิต (รวมประกันสุขภาพแล้ว ต้องไม่เกิน 100,000)" value={deductions.lifeInsurance} onChange={(v)=>setDeductions({...deductions, lifeInsurance: v})} icon="health_and_safety" />
               <Input label="ประกันสุขภาพตัวเอง (จ่ายจริง สูงสุด 25,000)" value={deductions.healthInsurance} onChange={(v)=>setDeductions({...deductions, healthInsurance: v})} icon="medical_information" />
               <Input label="ประกันสุขภาพบิดามารดา (รวมกันสูงสุด 15,000)" value={deductions.parentsHealth} onChange={(v)=>setDeductions({...deductions, parentsHealth: v})} icon="volunteer_activism" />
-              {/* ✅ เพิ่มช่องกรอก กอช. เข้ามาในกลุ่มนี้ */}
+              
+              {/* ✅ เพิ่มช่อง กบข. และ กองทุนสำรองเลี้ยงชีพ PVD */}
+              <Input label="กบข. / กองทุนสำรองเลี้ยงชีพ PVD (สูงสุด 15% ไม่เกิน 5 แสน)" value={deductions.pvd} onChange={(v)=>setDeductions({...deductions, pvd: v})} icon="account_balance" />
               <Input label="กอช. กองทุนการออมแห่งชาติ (ตามจริง สูงสุด 30,000)" value={deductions.nsf} onChange={(v)=>setDeductions({...deductions, nsf: v})} icon="savings" />
               <Input label="กองทุน SSF (เพื่อการออม ถือ 10 ปี สูงสุด 30% ไม่เกิน 2 แสน)" value={deductions.ssf} onChange={(v)=>setDeductions({...deductions, ssf: v})} icon="query_stats" />
               <Input label="กองทุน RMF (เพื่อการเลี้ยงชีพ สูงสุด 30% ไม่เกิน 5 แสน)" value={deductions.rmf} onChange={(v)=>setDeductions({...deductions, rmf: v})} icon="trending_up" />
@@ -392,7 +398,6 @@ function FormSection({ title, subtitle, icon, children }) {
   );
 }
 
-// ✅ อัปเดต className ไม่ให้มี uppercase และ tracking-widest ที่อ่านยาก เพื่อสระไทยไม่ลอย
 function Input({ label, value, onChange, multiplier = "บาท", icon }) {
   return (
     <div className="space-y-1">
@@ -414,7 +419,6 @@ function Input({ label, value, onChange, multiplier = "บาท", icon }) {
   );
 }
 
-// ✅ อัปเดต className เช่นเดียวกันใน RentInput
 function RentInput({ label, value, onChange, typeValue, onTypeChange, multiplier = "บาท", icon }) {
   return (
     <div className="space-y-1">
