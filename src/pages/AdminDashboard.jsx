@@ -17,7 +17,7 @@ export default function AdminDashboard({ user }) {
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
-  // ✅ อัปเดต labelMap เพิ่มคำแปลของ Module 4 ใหม่เข้าไป
+  // ✅ อัปเดต labelMap เพิ่มคำแปลของ กอช. และ ประเภทค่าเช่า
   const labelMap = {
     inputs: 'ข้อมูลนำเข้า', amount: 'จำนวนเงิน', rate: 'ดอกเบี้ย/ผลตอบแทน', years: 'ระยะเวลา (ปี)',
     everyXMonths: 'คิดดอกทุกๆ (เดือน)', calcType: 'ประเภทคำนวณ', currentAge: 'อายุปัจจุบัน',
@@ -32,7 +32,8 @@ export default function AdminDashboard({ user }) {
     spouse: 'คู่สมรส', parentsCount: 'พ่อแม่ (60+)', childrenOld: 'ลูกคนแรก', childrenNew: 'ลูกคนที่ 2+',
     lifeInsurance: 'ประกันชีวิต', healthInsurance: 'ประกันสุขภาพ', socialSecurity: 'ประกันสังคม',
     rmf: 'กองทุน RMF', ssf: 'กองทุน SSF', pension: 'ประกันบำนาญ', donationGeneral: 'บริจาคทั่วไป',
-    donationEdu: 'บริจาคการศึกษา', homeLoanInterest: 'ดอกเบี้ยบ้าน',
+    donationEdu: 'บริจาคการศึกษา', homeLoanInterest: 'ดอกเบี้ยบ้าน', nsf: 'กองทุน กอช.',
+    m40_5_type: 'ประเภทค่าเช่า', house: 'บ้าน/อาคาร/รถ', agri_land: 'ที่ดินเกษตรกรรม', other_land: 'ที่ดินอื่นๆ',
     grade: 'ชั้น', room: 'ห้อง', number: 'เลขที่',
     // --- ตัวแปรใหม่ของ Module 4 ---
     mode: 'โหมดคำนวณ',
