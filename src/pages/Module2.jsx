@@ -10,6 +10,11 @@ export default function Module2TaxSimulator({ user }) {
     m40_5: 0, m40_6: 0, m40_7: 0, m40_8: 0
   });
 
+  // ✅ เพิ่ม State สำหรับเก็บประเภทของทรัพย์สินให้เช่า 40(5)
+  const [incomeTypes, setIncomeTypes] = useState({
+    m40_5_type: 'house' // ค่าเริ่มต้น: house (บ้าน/อาคาร 30%), agri_land (ที่ดินเกษตร 20%), other_land (ที่ดินอื่นๆ 15%)
+  });
+
   const [deductions, setDeductions] = useState({
     // กลุ่ม 1
     spouse: false, parentsCount: 0, childrenOld: 0, childrenNew: 0, 
@@ -33,11 +38,20 @@ export default function Module2TaxSimulator({ user }) {
     const totalIncome = Object.values(incomes).reduce((a, b) => a + b, 0);
     const incomeType2to8 = totalIncome - incomes.m40_1;
 
+    // ✅ ฟังก์ชันดึงอัตราหักค่าใช้จ่ายเหมา 40(5) ตามกฎหมาย
+    const getM40_5_Rate = (type) => {
+      switch(type) {
+        case 'agri_land': return 0.20; // ที่ดินเพื่อการเกษตร
+        case 'other_land': return 0.15; // ที่ดินอื่นๆ
+        default: return 0.30; // บ้าน, อาคาร, สิ่งปลูกสร้าง, ยานพาหนะ
+      }
+    };
+
     // 2. คำนวณค่าใช้จ่าย
     const exp1_2 = Math.min((incomes.m40_1 + incomes.m40_2) * 0.5, 100000);
     const exp3 = Math.min(incomes.m40_3 * 0.5, 100000);
     const exp4 = 0; 
-    const exp5 = incomes.m40_5 * 0.3; 
+    const exp5 = incomes.m40_5 * getM40_5_Rate(incomeTypes.m40_5_type); // ✅ ใช้เรทแบบไดนามิก
     const exp6 = incomes.m40_6 * 0.3; 
     const exp7 = incomes.m40_7 * 0.6; 
     const exp8 = incomes.m40_8 * 0.6; 
@@ -117,7 +131,7 @@ export default function Module2TaxSimulator({ user }) {
     const finalTaxToPay = isMethod2Applicable ? Math.max(totalTaxMethod1, taxMethod2) : totalTaxMethod1;
     const winningMethod = isMethod2Applicable && taxMethod2 > totalTaxMethod1 ? 2 : 1;
 
-    // 🤖 7. AI Advisor Logic (สร้างคำแนะนำแบบเฉพาะบุคคล)
+    // 🤖 7. AI Advisor Logic
     const marginalRate = steps.findLast(s => s.amount > 0)?.rate || 0;
     const aiMessages = [];
     
@@ -149,14 +163,15 @@ export default function Module2TaxSimulator({ user }) {
         netIncome, taxMethod1: totalTaxMethod1, taxMethod2,
         winningMethod, isMethod2Applicable
       },
-      advisor: { messages: aiMessages } // ส่งคำแนะนำออกไปแสดงผล
+      advisor: { messages: aiMessages } 
     });
     setActiveTab('summary');
   };
 
   const saveToSheets = async () => {
     setIsSubmitting(true);
-    const fullData = { incomes, deductions, taxToPay: result.taxToPay };
+    // ✅ บันทึก incomeTypes เข้าไปด้วยเพื่อเป็นหลักฐาน
+    const fullData = { incomes, incomeTypes, deductions, taxToPay: result.taxToPay };
     try {
       await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST", mode: "no-cors",
@@ -214,12 +229,22 @@ export default function Module2TaxSimulator({ user }) {
               <Input label="40(3) ค่าลิขสิทธิ์/สิทธิบัตร" value={incomes.m40_3} onChange={(v)=>setIncomes({...incomes, m40_3: v})} icon="copyright" />
               <Input label="40(4) ดอกเบี้ย/เงินปันผล" value={incomes.m40_4} onChange={(v)=>setIncomes({...incomes, m40_4: v})} icon="account_balance" />
             </FormSection>
+            
             <FormSection title="รายได้กลุ่ม 40(5) - 40(8)" subtitle="(1 ม.ค. - 31 ธ.ค.)" icon="storefront">
-              <Input label="40(5) ค่าเช่าทรัพย์สิน" value={incomes.m40_5} onChange={(v)=>setIncomes({...incomes, m40_5: v})} icon="home_work" />
+              {/* ✅ แทนที่ช่อง 40(5) เดิมด้วย RentInput ที่มี Dropdown */}
+              <RentInput 
+                label="40(5) ค่าเช่าทรัพย์สิน" 
+                value={incomes.m40_5} 
+                onChange={(v)=>setIncomes({...incomes, m40_5: v})} 
+                typeValue={incomeTypes.m40_5_type}
+                onTypeChange={(v)=>setIncomeTypes({...incomeTypes, m40_5_type: v})}
+                icon="home_work" 
+              />
               <Input label="40(6) วิชาชีพอิสระ (กฎหมาย/แพทย์)" value={incomes.m40_6} onChange={(v)=>setIncomes({...incomes, m40_6: v})} icon="medical_services" />
               <Input label="40(7) รับเหมา (รวมค่าของ)" value={incomes.m40_7} onChange={(v)=>setIncomes({...incomes, m40_7: v})} icon="construction" />
               <Input label="40(8) ธุรกิจ/พาณิชย์/ขายของ" value={incomes.m40_8} onChange={(v)=>setIncomes({...incomes, m40_8: v})} icon="shopping_cart" />
             </FormSection>
+            
             <button onClick={() => setActiveTab('deduction')} className="lg:col-span-2 py-4 md:py-6 bg-slate-900 text-white font-black rounded-[1.2rem] md:rounded-[2rem] shadow-xl hover:bg-blue-600 transition-all active:scale-95 text-sm md:text-xl flex items-center justify-center gap-2 md:gap-4 mt-2">
                ถัดไป: บันทึกค่าลดหย่อน <span className="material-symbols-outlined text-lg md:text-2xl">arrow_forward</span>
             </button>
@@ -289,7 +314,7 @@ export default function Module2TaxSimulator({ user }) {
                </div>
             </div>
 
-            {/* 🤖 AI Advisor Section (ใหม่ล่าสุด!) */}
+            {/* 🤖 AI Advisor Section */}
             <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-xl border border-blue-200 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-lg flex flex-col md:flex-row gap-6 md:gap-8 items-start md:items-center relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -mr-10 -mt-10"></div>
                <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center shadow-md shrink-0 border border-blue-100 group-hover:scale-110 transition-transform duration-500 z-10">
@@ -376,7 +401,7 @@ export default function Module2TaxSimulator({ user }) {
   );
 }
 
-// ✅ Components ย่อย (ปรับ Padding และ ฟอนต์ ให้เล็กกะทัดรัดขึ้นสำหรับมือถือ)
+// ✅ Components ย่อย 
 function FormSection({ title, subtitle, icon, children }) {
   return (
     <div className="bg-white/80 backdrop-blur-xl p-5 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] shadow-lg border border-white space-y-3 md:space-y-5">
@@ -406,6 +431,39 @@ function Input({ label, value, onChange, multiplier = "บาท", icon }) {
           onChange={(e) => onChange(Number(e.target.value.replace(/[^0-9]/g, '')))} 
           className="w-full pl-12 pr-12 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-black text-slate-700 text-sm md:text-base transition-all shadow-sm placeholder:text-slate-200" 
           placeholder="0" 
+        />
+        <span className="absolute right-3 text-[8px] md:text-[9px] font-black text-slate-300 uppercase tracking-widest">{multiplier}</span>
+      </div>
+    </div>
+  );
+}
+
+// ✅ Component พิเศษสำหรับ 40(5) ที่มี Dropdown เลือกว่าหักเหมาแบบไหน
+function RentInput({ label, value, onChange, typeValue, onTypeChange, multiplier = "บาท", icon }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
+        <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block leading-tight">{label}</label>
+        <select
+          value={typeValue}
+          onChange={(e) => onTypeChange(e.target.value)}
+          className="text-[9px] md:text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-2 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500 shadow-sm"
+        >
+          <option value="house">บ้าน/อาคาร/รถ (หักเหมา 30%)</option>
+          <option value="agri_land">ที่ดินเกษตรกรรม (หักเหมา 20%)</option>
+          <option value="other_land">ที่ดินอื่นๆ (หักเหมา 15%)</option>
+        </select>
+      </div>
+      <div className="relative flex items-center group">
+        <div className="absolute left-2 w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-focus-within:bg-blue-50 group-focus-within:text-blue-600 transition-colors">
+          <span className="material-symbols-outlined text-[16px] md:text-[18px]">{icon}</span>
+        </div>
+        <input
+          type="text"
+          value={value === 0 ? '' : value}
+          onChange={(e) => onChange(Number(e.target.value.replace(/[^0-9]/g, '')))}
+          className="w-full pl-12 pr-12 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-black text-slate-700 text-sm md:text-base transition-all shadow-sm placeholder:text-slate-200"
+          placeholder="0"
         />
         <span className="absolute right-3 text-[8px] md:text-[9px] font-black text-slate-300 uppercase tracking-widest">{multiplier}</span>
       </div>
