@@ -134,6 +134,15 @@ export default function Module4RetirementPlanner({ user }) {
   };
 
   const renderFormulaBox = () => {
+    // ✅ ตัวแปรสำหรับการแทนค่า (Substitution)
+    const isZeroInterest = planInputs.returnRate === 0;
+    const i_val = planInputs.returnRate / 100 / 12;
+    const i_val_str = parseFloat(i_val.toFixed(6)).toString();
+    const expense_str = planInputs.monthlyExpense.toLocaleString('en-US');
+    const months_retire = Math.max(0, (planInputs.lifeExpectancy - planInputs.retireAge) * 12).toString();
+    const target_input_str = planInputs.targetFundInput.toLocaleString('en-US');
+    const months_work = Math.max(0, (planInputs.retireAge - planInputs.currentAge) * 12).toString();
+
     return (
       <div className="bg-slate-900 p-6 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group mb-6 transition-all duration-500">
         <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/20 rounded-full blur-[40px]"></div>
@@ -179,6 +188,74 @@ export default function Module4RetirementPlanner({ user }) {
             </div>
           </div>
         )}
+
+        {/* ✅ เพิ่มกระดานแสดงการแทนค่าในสูตร (Substitution Board) */}
+        <div className="mt-8 bg-slate-800/80 p-5 md:p-6 rounded-[1.5rem] border border-amber-500/20 shadow-inner relative overflow-x-auto custom-scrollbar">
+          <div className="flex items-center gap-2 mb-4 opacity-90 border-b border-amber-500/20 pb-2">
+            <span className="material-symbols-outlined text-amber-400 text-lg">edit_square</span>
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-amber-400">การแทนค่าในสูตร (Substitution)</p>
+          </div>
+
+          <div className="flex items-center justify-center text-sm md:text-xl font-black italic text-amber-100 py-2 min-w-max px-2">
+            {calcMode === 'FIND_TARGET' && (
+              <>
+                {isZeroInterest ? (
+                  <div className="flex items-center gap-2">
+                    <span className="not-italic font-bold text-sm md:text-lg">เป้าหมาย =</span>
+                    <span>{expense_str} × {months_retire}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <span className="not-italic font-bold text-sm md:text-lg">เป้าหมาย =</span>
+                    <div className="flex flex-col items-center">
+                      <div className="border-b-2 border-amber-400 px-3 pb-1.5 flex items-center">
+                        <span>{expense_str}</span>
+                        <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">(</span>
+                        <span>1 - (1+{i_val_str})</span>
+                        <sup className="text-[10px] md:text-xs -mt-3 md:-mt-4">-{months_retire}</sup>
+                        <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">)</span>
+                      </div>
+                      <span className="pt-1.5">{i_val_str}</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {calcMode === 'FIND_SAVING' && (
+              <>
+                {isZeroInterest ? (
+                  <div className="flex items-center gap-3">
+                    <span className="not-italic font-bold text-sm md:text-lg">เงินออมต่อเดือน =</span>
+                    <div className="flex flex-col items-center">
+                      <div className="border-b-2 border-amber-400 px-3 pb-1">
+                        {target_input_str}
+                      </div>
+                      <span className="pt-1">{months_work}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <span className="not-italic font-bold text-sm md:text-lg">เงินออมต่อเดือน =</span>
+                    <div className="flex flex-col items-center">
+                      <div className="border-b-2 border-amber-400 px-3 pb-1.5">
+                        {target_input_str} × {i_val_str}
+                      </div>
+                      <div className="pt-1.5 flex items-center">
+                        <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">(</span>
+                        <span>(1+{i_val_str})</span>
+                        <sup className="text-[10px] md:text-xs -mt-3 md:-mt-4">{months_work}</sup>
+                        <span>&nbsp;- 1</span>
+                        <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">)</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
       </div>
     );
   };
@@ -374,6 +451,7 @@ export default function Module4RetirementPlanner({ user }) {
   );
 }
 
+// ✅ เพิ่ม toLocaleString('en-US') เพื่อให้มีเครื่องหมายลูกน้ำในช่องกรอก
 function InputField({ label, name, value, onChange, icon }) {
   return (
     <div className="space-y-1.5 pb-2">
@@ -385,7 +463,7 @@ function InputField({ label, name, value, onChange, icon }) {
         <input 
           type="text" 
           name={name} 
-          value={value === 0 ? '' : value} 
+          value={value === 0 ? '' : Number(value).toLocaleString('en-US')} 
           onChange={onChange} 
           className="w-full pl-14 md:pl-16 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-[1.5rem] focus:ring-4 focus:ring-fuchsia-500/10 focus:bg-white focus:border-fuchsia-200 outline-none font-black text-slate-800 text-base md:text-lg transition-all shadow-inner placeholder:text-slate-200" 
           placeholder="0" 

@@ -96,8 +96,13 @@ export default function Module5LifePlanner({ user }) {
     finally { setIsSubmitting(false); }
   };
 
-  // ✅ ฟังก์ชันแสดงสูตรและคอนเซปต์ของ Module 5
+  // ✅ ฟังก์ชันแสดงสูตรและกระดานแทนค่า
   const renderFormulaBox = () => {
+    const yearlyIncomeSub = inputs.startingSalary * 12;
+    const yearlyTaxSub = calculateYearlyTax(yearlyIncomeSub);
+    const yearlyExpenseSub = inputs.monthlyExpense * 12;
+    const surplusSub = Math.max(0, yearlyIncomeSub - yearlyTaxSub - yearlyExpenseSub);
+
     return (
       <div className="bg-slate-900 p-6 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group mb-6">
         <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/20 rounded-full blur-[40px]"></div>
@@ -109,10 +114,12 @@ export default function Module5LifePlanner({ user }) {
 
         <div className="space-y-4">
           <p className="text-xs md:text-sm text-cyan-100/80 mb-2 font-bold text-center whitespace-nowrap">
-            วิธีหาเงินคงเหลือเพื่อนำไปจัดสรร (Surplus)
+            วิธีหาเงินคงเหลือเพื่อนำไปจัดสรร (Surplus) ในปีแรก
           </p>
+          
+          {/* แถวแสดง Model พื้นฐาน */}
           <div className="overflow-x-auto custom-scrollbar pb-2">
-            <div className="flex items-center justify-center gap-2 text-[11px] sm:text-sm md:text-base font-black text-cyan-50 whitespace-nowrap w-max mx-auto">
+            <div className="flex items-center justify-center gap-2 text-[10px] sm:text-sm md:text-base font-black text-cyan-50 whitespace-nowrap w-max mx-auto opacity-60">
               <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30">รายได้ต่อปี</span>
               <span className="text-cyan-400 font-bold">-</span>
               <span className="bg-rose-500/20 text-rose-300 px-3 py-1.5 rounded-lg border border-rose-500/30">ภาษีรายปี</span>
@@ -122,11 +129,25 @@ export default function Module5LifePlanner({ user }) {
               <span className="bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-lg border border-blue-500/30">เงินก้อนเพื่อจัดสรร</span>
             </div>
           </div>
+
+          {/* ✅ แถวแสดงการแทนค่า (Substitution Board) แบบ Real-time */}
+          <div className="bg-slate-800/80 p-4 md:p-6 rounded-[1.5rem] border border-amber-500/20 shadow-inner mt-4 overflow-x-auto custom-scrollbar">
+             <div className="flex items-center justify-center gap-2 md:gap-4 text-xs sm:text-base md:text-lg font-black text-amber-100 whitespace-nowrap w-max mx-auto italic">
+                <span className="text-emerald-300">{yearlyIncomeSub.toLocaleString()}</span>
+                <span className="text-amber-400 not-italic">-</span>
+                <span className="text-rose-300">{yearlyTaxSub.toLocaleString()}</span>
+                <span className="text-amber-400 not-italic">-</span>
+                <span className="text-orange-300">{yearlyExpenseSub.toLocaleString()}</span>
+                <span className="text-amber-400 not-italic">=</span>
+                <span className="text-blue-300 text-lg md:text-2xl px-2 py-1 bg-blue-500/10 rounded-lg border border-blue-400/30">
+                  ฿{surplusSub.toLocaleString()}
+                </span>
+             </div>
+          </div>
           
           <div className="mt-4 pt-4 border-t border-white/10">
             <p className="text-[10px] md:text-xs font-bold text-slate-400 text-center leading-relaxed">
-              *หมายเหตุ: โปรแกรมจะนำ <strong className="text-blue-300">"เงินก้อนเพื่อจัดสรร"</strong> ไปแบ่งตามเปอร์เซ็นต์ที่คุณกำหนดด้านล่าง <br className="hidden md:block" />
-              และนำไปคำนวณทบต้นด้วยดอกเบี้ยของแต่ละกองทุนในทุกๆ ปี
+              *โปรแกรมจะนำ <strong className="text-blue-300">"เงินก้อนจัดสรร" (฿{surplusSub.toLocaleString()})</strong> ไปแบ่งเปอร์เซ็นต์ตามล้อเลื่อนด้านล่าง<br className="hidden md:block" />และระบบจะเพิ่มเงินเดือนของคุณ {inputs.salaryIncrease}% ในทุกๆ ปีโดยอัตโนมัติ
             </p>
           </div>
         </div>
@@ -144,7 +165,7 @@ export default function Module5LifePlanner({ user }) {
       <div className="max-w-7xl mx-auto space-y-8 md:space-y-10 relative z-10">
         
         {/* Header Section */}
-        <section className="bg-white/60 backdrop-blur-2xl p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] border border-white shadow-xl shadow-slate-200/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
+        <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/60 backdrop-blur-2xl p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] border border-white shadow-xl shadow-slate-200/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
           <div className="flex items-center gap-4 md:gap-6">
             <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl md:rounded-3xl flex items-center justify-center text-white text-4xl md:text-5xl shadow-xl shadow-cyan-500/20 group hover:scale-110 transition-transform duration-500 shrink-0">
               <span className="material-symbols-outlined text-4xl md:text-5xl">rocket_launch</span>
@@ -173,14 +194,14 @@ export default function Module5LifePlanner({ user }) {
                 <h3 className="text-xs md:text-sm font-black text-cyan-600 uppercase tracking-[0.2em] flex items-center gap-2 border-b border-slate-100 pb-3 md:pb-4">
                   <span className="material-symbols-outlined text-lg md:text-xl">work</span> 1. ข้อมูลรายได้-รายจ่าย
                 </h3>
-                <InputField label="เงินเดือนเริ่มต้น" value={inputs.startingSalary} onChange={(e)=>setInputs({...inputs, startingSalary: Number(e.target.value)})} icon="payments" />
+                <InputField label="เงินเดือนเริ่มต้น" value={inputs.startingSalary} onChange={(e)=>setInputs({...inputs, startingSalary: Number(e.target.value.replace(/[^0-9]/g, ''))})} icon="payments" />
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputField label="เงินเดือนขึ้น (%/ปี)" value={inputs.salaryIncrease} onChange={(e)=>setInputs({...inputs, salaryIncrease: Number(e.target.value)})} icon="trending_up" />
-                  <InputField label="ระยะเวลาจำลอง (ปี)" value={inputs.yearsToSimulate} onChange={(e)=>setInputs({...inputs, yearsToSimulate: Number(e.target.value)})} icon="calendar_today" />
+                  <InputField label="เงินเดือนขึ้น (%/ปี)" value={inputs.salaryIncrease} onChange={(e)=>setInputs({...inputs, salaryIncrease: Number(e.target.value.replace(/[^0-9.]/g, ''))})} icon="trending_up" isPercent={true} />
+                  <InputField label="ระยะเวลาจำลอง (ปี)" value={inputs.yearsToSimulate} onChange={(e)=>setInputs({...inputs, yearsToSimulate: Number(e.target.value.replace(/[^0-9]/g, ''))})} icon="calendar_today" isPercent={true} />
                 </div>
                 
-                <InputField label="รายจ่ายคงที่ต่อเดือน" value={inputs.monthlyExpense} onChange={(e)=>setInputs({...inputs, monthlyExpense: Number(e.target.value)})} icon="shopping_bag" />
+                <InputField label="รายจ่ายคงที่ต่อเดือน" value={inputs.monthlyExpense} onChange={(e)=>setInputs({...inputs, monthlyExpense: Number(e.target.value.replace(/[^0-9]/g, ''))})} icon="shopping_bag" />
               </div>
 
               <div className="space-y-5 md:space-y-6 pt-2">
@@ -235,7 +256,6 @@ export default function Module5LifePlanner({ user }) {
                       <XAxis dataKey="year" tick={{fontSize: 9, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
                       <YAxis hide />
                       
-                      {/* ✅ แปลง Tooltip ให้แสดงภาษาไทย */}
                       <Tooltip 
                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'black', fontSize: '12px' }} 
                         formatter={(value, name) => {
@@ -245,7 +265,6 @@ export default function Module5LifePlanner({ user }) {
                         }}
                       />
                       
-                      {/* ✅ แปลง Legend (คำอธิบายสีของกราฟ) ให้เป็นภาษาไทย */}
                       <Legend 
                         verticalAlign="top" 
                         wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }} 
@@ -288,8 +307,8 @@ export default function Module5LifePlanner({ user }) {
   );
 }
 
-// ✅ ลด Padding + เพิ่ม normal-case ป้องกันตัวพิมพ์ใหญ่
-function InputField({ label, value, onChange, icon }) {
+// ✅ อัปเดต InputField ให้มี .toLocaleString()
+function InputField({ label, value, onChange, icon, isPercent = false }) {
   return (
     <div className="space-y-1.5 pb-2">
       <label className="text-[9px] md:text-[10px] font-black text-slate-400 normal-case tracking-widest ml-3 block">{label}</label>
@@ -299,7 +318,7 @@ function InputField({ label, value, onChange, icon }) {
         </div>
         <input 
           type="text" 
-          value={value === 0 ? '' : value} 
+          value={value === 0 ? '' : (isPercent ? value : Number(value).toLocaleString('en-US'))} 
           onChange={onChange} 
           className="w-full pl-14 md:pl-16 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-[1.5rem] focus:ring-4 focus:ring-blue-500/10 focus:bg-white focus:border-blue-200 outline-none font-black text-slate-800 text-base md:text-lg transition-all shadow-inner placeholder:text-slate-200" 
           placeholder="0" 

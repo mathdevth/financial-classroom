@@ -10,8 +10,9 @@ export default function Module2TaxSimulator({ user }) {
     m40_5: 0, m40_6: 0, m40_7: 0, m40_8: 0
   });
 
+  // ✅ เพิ่ม State สำหรับเก็บประเภทของทรัพย์สินให้เช่า 40(5)
   const [incomeTypes, setIncomeTypes] = useState({
-    m40_5_type: 'house' 
+    m40_5_type: 'house' // ค่าเริ่มต้น: house (บ้าน/อาคาร 30%), agri_land (ที่ดินเกษตร 20%), other_land (ที่ดินอื่นๆ 15%)
   });
 
   const [deductions, setDeductions] = useState({
@@ -33,32 +34,38 @@ export default function Module2TaxSimulator({ user }) {
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
   const calculateTax = () => {
+    // 1. รวมเงินได้พึงประเมิน
     const totalIncome = Object.values(incomes).reduce((a, b) => a + b, 0);
     const incomeType2to8 = totalIncome - incomes.m40_1;
 
+    // ✅ ฟังก์ชันดึงอัตราหักค่าใช้จ่ายเหมา 40(5) ตามกฎหมาย
     const getM40_5_Rate = (type) => {
       switch(type) {
-        case 'agri_land': return 0.20; 
-        case 'other_land': return 0.15; 
-        default: return 0.30; 
+        case 'agri_land': return 0.20; // ที่ดินเพื่อการเกษตร
+        case 'other_land': return 0.15; // ที่ดินอื่นๆ
+        default: return 0.30; // บ้าน, อาคาร, สิ่งปลูกสร้าง, ยานพาหนะ
       }
     };
 
+    // 2. คำนวณค่าใช้จ่าย
     const exp1_2 = Math.min((incomes.m40_1 + incomes.m40_2) * 0.5, 100000);
     const exp3 = Math.min(incomes.m40_3 * 0.5, 100000);
     const exp4 = 0; 
-    const exp5 = incomes.m40_5 * getM40_5_Rate(incomeTypes.m40_5_type); 
+    const exp5 = incomes.m40_5 * getM40_5_Rate(incomeTypes.m40_5_type); // ✅ ใช้เรทแบบไดนามิก
     const exp6 = incomes.m40_6 * 0.3; 
     const exp7 = incomes.m40_7 * 0.6; 
     const exp8 = incomes.m40_8 * 0.6; 
     const totalExpense = exp1_2 + exp3 + exp4 + exp5 + exp6 + exp7 + exp8;
 
+    // 3. คำนวณค่าลดหย่อน
+    // กลุ่ม 1: ครอบครัว
     const dedPersonal = 60000;
     const dedSpouse = deductions.spouse ? 60000 : 0;
     const dedParents = deductions.parentsCount * 30000;
     const dedChildren = (deductions.childrenOld * 30000) + (deductions.childrenNew * 60000);
     const group1 = dedPersonal + dedSpouse + dedParents + dedChildren;
 
+    // กลุ่ม 2: ประกัน/ลงทุน
     const dedSocial = Math.min(deductions.socialSecurity, 9000);
     const rawHealth = Math.min(deductions.healthInsurance, 25000);
     const dedLifeHealth = Math.min(deductions.lifeInsurance + rawHealth, 100000);
@@ -77,6 +84,7 @@ export default function Module2TaxSimulator({ user }) {
     const dedThaiEsg = Math.min(deductions.thaiEsg, 300000, totalIncome * 0.3);
     const group2 = dedSocial + dedLifeHealth + dedParentsHealth + totalInvest + dedThaiEsg;
 
+    // กลุ่ม 4: อสังหาฯ และสร้างบ้าน
     const dedHomeLoan = Math.min(deductions.homeLoanInterest, 100000);
     const dedNewHome = Math.min(deductions.newHome, 100000); 
     const group4 = dedHomeLoan + dedNewHome;
@@ -84,13 +92,16 @@ export default function Module2TaxSimulator({ user }) {
     const totalDedBeforeDonation = group1 + group2 + group4;
     const netBeforeDonation = Math.max(0, totalIncome - totalExpense - totalDedBeforeDonation);
 
+    // กลุ่ม 3: เงินบริจาค
     const dedDonationEdu = Math.min(deductions.donationEdu * 2, netBeforeDonation * 0.1); 
     const netAfterEdu = Math.max(0, netBeforeDonation - dedDonationEdu);
     const dedDonationGeneral = Math.min(deductions.donationGeneral, netAfterEdu * 0.1);
     const group3 = dedDonationEdu + dedDonationGeneral;
 
+    // 4. เงินได้สุทธิ (Net Income)
     const netIncome = Math.max(0, netAfterEdu - dedDonationGeneral);
 
+    // 5. คำนวณภาษีวิธีที่ 1 (ขั้นบันได)
     let remainingNet = netIncome;
     let totalTaxMethod1 = 0;
     const steps = [];
@@ -117,11 +128,13 @@ export default function Module2TaxSimulator({ user }) {
       }
     });
 
+    // 6. คำนวณภาษีวิธีที่ 2
     const taxMethod2 = incomeType2to8 * 0.005;
     const isMethod2Applicable = taxMethod2 > 5000;
     const finalTaxToPay = isMethod2Applicable ? Math.max(totalTaxMethod1, taxMethod2) : totalTaxMethod1;
     const winningMethod = isMethod2Applicable && taxMethod2 > totalTaxMethod1 ? 2 : 1;
 
+    // 🤖 7. AI Advisor Logic
     const marginalRate = steps.findLast(s => s.amount > 0)?.rate || 0;
     const aiMessages = [];
     
@@ -253,8 +266,6 @@ export default function Module2TaxSimulator({ user }) {
               <Input label="ประกันชีวิต (รวมประกันสุขภาพแล้ว ต้องไม่เกิน 100,000)" value={deductions.lifeInsurance} onChange={(v)=>setDeductions({...deductions, lifeInsurance: v})} icon="health_and_safety" />
               <Input label="ประกันสุขภาพตัวเอง (จ่ายจริง สูงสุด 25,000)" value={deductions.healthInsurance} onChange={(v)=>setDeductions({...deductions, healthInsurance: v})} icon="medical_information" />
               <Input label="ประกันสุขภาพบิดามารดา (รวมกันสูงสุด 15,000)" value={deductions.parentsHealth} onChange={(v)=>setDeductions({...deductions, parentsHealth: v})} icon="volunteer_activism" />
-              
-              {/* ✅ เพิ่มช่อง กบข. และ กองทุนสำรองเลี้ยงชีพ PVD */}
               <Input label="กบข. / กองทุนสำรองเลี้ยงชีพ PVD (สูงสุด 15% ไม่เกิน 5 แสน)" value={deductions.pvd} onChange={(v)=>setDeductions({...deductions, pvd: v})} icon="account_balance" />
               <Input label="กอช. กองทุนการออมแห่งชาติ (ตามจริง สูงสุด 30,000)" value={deductions.nsf} onChange={(v)=>setDeductions({...deductions, nsf: v})} icon="savings" />
               <Input label="กองทุน SSF (เพื่อการออม ถือ 10 ปี สูงสุด 30% ไม่เกิน 2 แสน)" value={deductions.ssf} onChange={(v)=>setDeductions({...deductions, ssf: v})} icon="query_stats" />
@@ -398,6 +409,7 @@ function FormSection({ title, subtitle, icon, children }) {
   );
 }
 
+// ✅ เพิ่ม toLocaleString('en-US') เพื่อให้มีเครื่องหมายลูกน้ำ
 function Input({ label, value, onChange, multiplier = "บาท", icon }) {
   return (
     <div className="space-y-1">
@@ -408,7 +420,7 @@ function Input({ label, value, onChange, multiplier = "บาท", icon }) {
         </div>
         <input 
           type="text" 
-          value={value === 0 ? '' : value} 
+          value={value === 0 ? '' : Number(value).toLocaleString('en-US')} 
           onChange={(e) => onChange(Number(e.target.value.replace(/[^0-9]/g, '')))} 
           className="w-full pl-12 pr-12 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-black text-slate-700 text-sm md:text-base transition-all shadow-sm placeholder:text-slate-200" 
           placeholder="0" 
@@ -419,6 +431,7 @@ function Input({ label, value, onChange, multiplier = "บาท", icon }) {
   );
 }
 
+// ✅ เพิ่ม toLocaleString('en-US') ให้กับ RentInput ด้วยเช่นกัน
 function RentInput({ label, value, onChange, typeValue, onTypeChange, multiplier = "บาท", icon }) {
   return (
     <div className="space-y-1">
@@ -440,7 +453,7 @@ function RentInput({ label, value, onChange, typeValue, onTypeChange, multiplier
         </div>
         <input
           type="text"
-          value={value === 0 ? '' : value}
+          value={value === 0 ? '' : Number(value).toLocaleString('en-US')}
           onChange={(e) => onChange(Number(e.target.value.replace(/[^0-9]/g, '')))}
           className="w-full pl-12 pr-12 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-black text-slate-700 text-sm md:text-base transition-all shadow-sm placeholder:text-slate-200"
           placeholder="0"

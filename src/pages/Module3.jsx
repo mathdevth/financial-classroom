@@ -102,10 +102,20 @@ export default function Module3TVMCalculator({ user }) {
 
   const renderVisualFormula = () => {
     const isSingle = calcType === 'FV_SINGLE' || calcType === 'PV_SINGLE';
+    
+    // ✅ ตัวแปรสำหรับการแทนค่า (Substitution)
+    const P_sub = inputs.amount.toLocaleString('en-US');
+    const r_sub = (inputs.rate / 100).toString();
+    const k_sub = Math.max(1, inputs.k).toString();
+    const n_sub = inputs.years.toString();
+    const kn_sub = (Math.max(1, inputs.k) * inputs.years).toString();
+    const r_period_sub = parseFloat((inputs.rate / 100 / Math.max(1, inputs.k)).toFixed(6)).toString();
+
     return (
       <div className="bg-slate-900 p-6 md:p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px]"></div>
         
+        {/* ส่วนแสดงสูตรหลัก (Mathematical Model) */}
         <div className="flex items-center gap-3 mb-6 opacity-80 border-b border-white/10 pb-3">
           <span className="material-symbols-outlined text-emerald-400">functions</span>
           <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Mathematical Model</p>
@@ -177,6 +187,81 @@ export default function Module3TVMCalculator({ user }) {
           )}
         </div>
 
+        {/* ✅ เพิ่มกระดานแสดงการแทนค่าในสูตร (Substitution Board) */}
+        <div className="mt-6 bg-slate-800/80 p-5 md:p-6 rounded-[1.5rem] border border-amber-500/20 shadow-inner relative overflow-x-auto custom-scrollbar">
+          <div className="flex items-center gap-2 mb-4 opacity-90 border-b border-amber-500/20 pb-2">
+            <span className="material-symbols-outlined text-amber-400 text-lg">edit_square</span>
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-amber-400">การแทนค่าในสูตร (Substitution)</p>
+          </div>
+
+          <div className="flex items-center justify-center text-lg md:text-2xl font-black italic text-amber-100 py-2 min-w-max px-4">
+            {calcType === 'FV_SINGLE' && (
+              <>
+                <span>S = {P_sub}</span>
+                <span className="text-3xl md:text-4xl font-light mx-1 md:mx-2 -mt-1 md:-mt-2">(</span>
+                <div className="flex items-center">
+                  <span>1 +&nbsp;</span>
+                  <div className="flex flex-col items-center text-base md:text-xl mt-1">
+                    <span className="border-b-2 border-amber-400 px-2 pb-0.5 leading-none">{r_sub}</span>
+                    <span className="pt-0.5 leading-none">{k_sub}</span>
+                  </div>
+                </div>
+                <span className="text-3xl md:text-4xl font-light mx-1 md:mx-2 -mt-1 md:-mt-2">)</span>
+                <sup className="text-xs md:text-base -mt-6 md:-mt-8">{k_sub}×{n_sub}</sup>
+              </>
+            )}
+
+            {calcType === 'PV_SINGLE' && (
+              <>
+                <span>P = {P_sub}</span>
+                <span className="text-3xl md:text-4xl font-light mx-1 md:mx-2 -mt-1 md:-mt-2">(</span>
+                <div className="flex items-center">
+                  <span>1 +&nbsp;</span>
+                  <div className="flex flex-col items-center text-base md:text-xl mt-1">
+                    <span className="border-b-2 border-amber-400 px-2 pb-0.5 leading-none">{r_sub}</span>
+                    <span className="pt-0.5 leading-none">{k_sub}</span>
+                  </div>
+                </div>
+                <span className="text-3xl md:text-4xl font-light mx-1 md:mx-2 -mt-1 md:-mt-2">)</span>
+                <sup className="text-xs md:text-base -mt-6 md:-mt-8">-{k_sub}×{n_sub}</sup>
+              </>
+            )}
+
+            {calcType === 'FVA_ORD' && (
+              <>
+                <span className="mr-2 md:mr-3 not-italic font-bold text-base md:text-xl">เงินรวม =</span>
+                <div className="flex flex-col items-center">
+                  <div className="border-b-2 border-amber-400 px-2 md:px-4 pb-1 flex items-center">
+                    <span>{P_sub}</span>
+                    <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">(</span>
+                    <span>(1+{r_period_sub})</span><sup className="text-[10px] md:text-xs -mt-3 md:-mt-4">{kn_sub}</sup>
+                    <span>&nbsp;- 1</span>
+                    <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">)</span>
+                  </div>
+                  <span className="pt-1 md:pt-2">{r_period_sub}</span>
+                </div>
+              </>
+            )}
+
+            {calcType === 'FVA_DUE' && (
+              <>
+                <span className="mr-2 md:mr-3 not-italic font-bold text-base md:text-xl">เงินรวม =</span>
+                <div className="flex flex-col items-center">
+                  <div className="border-b-2 border-amber-400 px-2 md:px-4 pb-1 flex items-center">
+                    <span>{P_sub}(1+{r_period_sub})</span>
+                    <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">(</span>
+                    <span>(1+{r_period_sub})</span><sup className="text-[10px] md:text-xs -mt-3 md:-mt-4">{kn_sub}</sup>
+                    <span>&nbsp;- 1</span>
+                    <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">)</span>
+                  </div>
+                  <span className="pt-1 md:pt-2">{r_period_sub}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* คำอธิบายตัวแปร */}
         <div className="mt-6 bg-white/5 p-4 rounded-xl border border-white/10 text-[10px] md:text-xs font-bold space-y-1.5 text-slate-300">
           {isSingle ? (
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -324,7 +409,6 @@ export default function Module3TVMCalculator({ user }) {
                       <XAxis dataKey="label" tick={{fontSize: 9, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
                       <YAxis hide />
                       
-                      {/* ✅ เปลี่ยนข้อความตรงนี้ให้แปลไทยเป็นคำว่า "มูลค่าเงิน" เรียบร้อยแล้วครับ */}
                       <Tooltip 
                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'black', fontSize: '12px' }} 
                         formatter={(value) => [`฿${value.toLocaleString()}`, 'มูลค่าเงิน']} 
@@ -361,6 +445,7 @@ export default function Module3TVMCalculator({ user }) {
   );
 }
 
+// ✅ อัปเดต InputField ให้แสดงลูกน้ำด้วย .toLocaleString('en-US')
 function InputField({ label, name, value, onChange, icon }) {
   return (
     <div className="space-y-1.5 pb-2">
@@ -372,7 +457,7 @@ function InputField({ label, name, value, onChange, icon }) {
         <input 
           type="text" 
           name={name} 
-          value={value === 0 ? '' : value} 
+          value={value === 0 ? '' : Number(value).toLocaleString('en-US')} 
           onChange={onChange} 
           className="w-full pl-12 md:pl-16 pr-4 py-3 md:py-4 bg-emerald-50/50 border border-emerald-100 rounded-xl md:rounded-2xl focus:ring-2 focus:ring-emerald-500/50 outline-none font-black text-emerald-900 text-sm md:text-lg transition-all shadow-inner placeholder:text-emerald-200" 
           placeholder="0" 
