@@ -20,10 +20,10 @@ export default function Module2TaxSimulator({ user }) {
     // กลุ่ม 2
     socialSecurity: 0, lifeInsurance: 0, healthInsurance: 0, parentsHealth: 0,
     rmf: 0, ssf: 0, pension: 0, thaiEsg: 0, nsf: 0, pvd: 0, 
-    // กลุ่ม 4
-    homeLoanInterest: 0,
     // กลุ่ม 3
-    donationEdu: 0, donationGeneral: 0 
+    donationEdu: 0, donationGeneral: 0,
+    // กลุ่ม 4
+    homeLoanInterest: 0
   });
 
   const [result, setResult] = useState({ isCalculated: false, taxSteps: [], details: {}, advisor: { messages: [] } });
@@ -56,7 +56,6 @@ export default function Module2TaxSimulator({ user }) {
     const dedPersonal = 60000;
     const dedSpouse = deductions.spouse ? 60000 : 0;
     const dedParents = deductions.parentsCount * 30000;
-    // ✅ สูตรคำนวณบุตร (ช่องแรคูณ 3 หมื่น / ช่องสองคูณ 6 หมื่น)
     const dedChildren = (deductions.childrenOld * 30000) + (deductions.childrenNew * 60000);
     const group1 = dedPersonal + dedSpouse + dedParents + dedChildren;
 
@@ -146,7 +145,7 @@ export default function Module2TaxSimulator({ user }) {
       taxSteps: steps,
       details: {
         totalIncome, totalExpense,
-        group1, group2, group4, group3,
+        group1, group2, group3, group4, // ✅ อัปเดตการจัดเรียงกรุ๊ปให้ถูกต้อง
         totalDeductions: totalDedBeforeDonation + group3,
         netIncome, taxMethod1: totalTaxMethod1, taxMethod2,
         winningMethod, isMethod2Applicable
@@ -241,8 +240,6 @@ export default function Module2TaxSimulator({ user }) {
                 <input type="checkbox" checked={deductions.spouse} onChange={(e)=>setDeductions({...deductions, spouse: e.target.checked})} className="w-5 h-5 md:w-6 md:h-6 accent-blue-600 cursor-pointer" />
               </div>
               <Input label="จำนวนบิดามารดา (อายุ 60 ปีขึ้นไป รายได้ไม่เกิน 30,000/ปี)" value={deductions.parentsCount} onChange={(v)=>setDeductions({...deductions, parentsCount: v})} multiplier="คน" icon="elderly" />
-              
-              {/* ✅ ปรับข้อความของบุตรให้ชัดเจนป้องกันเด็กสับสน */}
               <Input label="บุตรคนที่ 1 หรือเกิดก่อนปี 2561 (หักได้ 30,000/คน)" value={deductions.childrenOld} onChange={(v)=>setDeductions({...deductions, childrenOld: v})} multiplier="คน" icon="child_care" />
               <Input label="บุตรคนที่ 2 ขึ้นไปที่เกิดตั้งแต่ปี 2561 เป็นต้นไป (หักได้ 60,000/คน)" value={deductions.childrenNew} onChange={(v)=>setDeductions({...deductions, childrenNew: v})} multiplier="คน" icon="baby_changing_station" />
             </FormSection>
@@ -260,10 +257,11 @@ export default function Module2TaxSimulator({ user }) {
               <Input label="กองทุน Thai ESG (เพื่อความยั่งยืน สูงสุด 30% ไม่เกิน 3 แสน)" value={deductions.thaiEsg} onChange={(v)=>setDeductions({...deductions, thaiEsg: v})} icon="eco" />
             </FormSection>
 
-            <FormSection title="กลุ่ม 3 และ 4: อสังหาฯและบริจาค" icon="cottage">
+            {/* ✅ เรียงกลุ่ม 3 ก่อนกลุ่ม 4 */}
+            <FormSection title="กลุ่ม 3 และ 4: เงินบริจาคและอสังหาฯ" icon="volunteer_activism">
+              <Input label="เงินบริจาคเพื่อการศึกษา/กีฬา/รพ.รัฐ (ลดได้ 2 เท่า แต่ไม่เกิน 10% ของเงินได้หลังหักลดหย่อนอื่นๆ)" value={deductions.donationEdu} onChange={(v)=>setDeductions({...deductions, donationEdu: v})} icon="school" />
+              <Input label="เงินบริจาคทั่วไป (ลดได้ตามจริง แต่ไม่เกิน 10% ของเงินได้หลังหักลดหย่อนอื่นๆ)" value={deductions.donationGeneral} onChange={(v)=>setDeductions({...deductions, donationGeneral: v})} icon="redeem" />
               <Input label="ดอกเบี้ยกู้ยืมเพื่อซื้อที่อยู่อาศัย (จ่ายจริง สูงสุด 100,000)" value={deductions.homeLoanInterest} onChange={(v)=>setDeductions({...deductions, homeLoanInterest: v})} icon="home" />
-              <Input label="เงินบริจาคเพื่อการศึกษา/กีฬา/รพ.รัฐ (ลดหย่อนได้ 2 เท่า ไม่เกิน 10% ของเงินได้หลังหักลดหย่อนอื่นๆ)" value={deductions.donationEdu} onChange={(v)=>setDeductions({...deductions, donationEdu: v})} icon="school" />
-              <Input label="เงินบริจาคทั่วไป (มูลนิธิ/วัด ลดได้ตามจริง ไม่เกิน 10% ของเงินได้หลังหักลดหย่อนอื่นๆ)" value={deductions.donationGeneral} onChange={(v)=>setDeductions({...deductions, donationGeneral: v})} icon="redeem" />
             </FormSection>
 
             <div className="flex items-end">
@@ -323,8 +321,9 @@ export default function Module2TaxSimulator({ user }) {
                 <div className="pl-4 md:pl-6 border-l-2 border-slate-100 space-y-2 py-2">
                   <DetailRow label="หัก ลดหย่อนกลุ่ม 1 (ส่วนตัว/ครอบครัว)" value={`- ${result.details.group1.toLocaleString()}`} color="text-emerald-600" isSub />
                   <DetailRow label="หัก ลดหย่อนกลุ่ม 2 (ประกัน/ลงทุน)" value={`- ${result.details.group2.toLocaleString()}`} color="text-emerald-600" isSub />
-                  <DetailRow label="หัก ลดหย่อนกลุ่ม 4 (อสังหาฯ)" value={`- ${result.details.group4.toLocaleString()}`} color="text-emerald-600" isSub />
+                  {/* ✅ เรียงกลุ่ม 3 ก่อนกลุ่ม 4 ในหน้าสรุป */}
                   <DetailRow label="หัก ลดหย่อนกลุ่ม 3 (เงินบริจาค)" value={`- ${result.details.group3.toLocaleString()}`} color="text-emerald-600" isSub />
+                  <DetailRow label="หัก ลดหย่อนกลุ่ม 4 (อสังหาฯ)" value={`- ${result.details.group4.toLocaleString()}`} color="text-emerald-600" isSub />
                 </div>
                 <div className="pt-2 border-t border-slate-100">
                   <DetailRow label="เงินได้สุทธิ (เพื่อนำไปคำนวณภาษี)" value={result.details.netIncome} isBold isLarge color="text-blue-600" />
@@ -332,7 +331,7 @@ export default function Module2TaxSimulator({ user }) {
               </div>
             </div>
 
-            {/* ย้ายตารางคำนวณขึ้นมาก่อนเปรียบเทียบ */}
+            {/* ✅ ย้ายตารางคำนวณขึ้นมาก่อนเปรียบเทียบ */}
             <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] md:rounded-[3rem] border border-white shadow-xl overflow-hidden">
               <div className="p-5 md:p-8 border-b border-slate-100 bg-slate-50/50">
                 <h3 className="font-black text-slate-800 text-base md:text-xl flex items-center gap-2"><span className="material-symbols-outlined text-blue-500">stairs</span> ตารางคำนวณภาษีแบบขั้นบันได (วิธีที่ 1)</h3>
@@ -356,6 +355,7 @@ export default function Module2TaxSimulator({ user }) {
                         <td className={`px-4 md:px-8 py-3 md:py-5 text-right font-black ${step.amount > 0 ? 'text-slate-800' : 'text-slate-300'}`}>฿{step.tax.toLocaleString()}</td>
                       </tr>
                     ))}
+                    {/* ✅ เพิ่มบรรทัดรวมภาษีวิธีที่ 1 */}
                     <tr className="bg-blue-50/80 border-t-2 border-blue-100">
                       <td colSpan="3" className="px-4 md:px-8 py-4 text-right font-black text-blue-800">รวมภาษีสะสม (วิธีที่ 1)</td>
                       <td className="px-4 md:px-8 py-4 text-right font-black text-blue-800 text-sm md:text-base">฿{result.details.taxMethod1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
@@ -365,7 +365,7 @@ export default function Module2TaxSimulator({ user }) {
               </div>
             </div>
 
-            {/* เพิ่มกล่องเปรียบเทียบวิธีที่ 2 */}
+            {/* ✅ เพิ่มกล่องเปรียบเทียบวิธีที่ 2 */}
             {(result.details.totalIncome - incomes.m40_1) > 0 && (
               <div className="bg-amber-50 border border-amber-200 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm">
                 <h3 className="text-sm md:text-base font-black text-amber-800 mb-4 flex items-center gap-2">
@@ -402,10 +402,10 @@ export default function Module2TaxSimulator({ user }) {
               </div>
             )}
 
-            {/* เพิ่มเครดิตอ้างอิง */}
+            {/* ✅ เพิ่มปีอ้างอิง */}
             <div className="text-center pt-2 pb-6 opacity-60">
               <p className="text-[10px] md:text-xs font-bold text-slate-500">
-                * อ้างอิงเกณฑ์การคำนวณและหักลดหย่อนภาษี ปีภาษี 2565 (ตามหนังสือเรียน สสวท.)
+                * อ้างอิงเกณฑ์การคำนวณและหักลดหย่อนภาษี ปีภาษี 2565
               </p>
             </div>
 
