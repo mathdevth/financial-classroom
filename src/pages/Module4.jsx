@@ -121,9 +121,7 @@ export default function Module4RetirementPlanner({ user }) {
         method: "POST", mode: "no-cors",
         body: JSON.stringify({
           action: "save", userId: user.id,
-          // ✅ เปลี่ยนชื่อโมดูลกลับมาเป็นชื่อดั้งเดิม เพื่อให้ Dashboard ดึงข้อมูลไปแสดงได้ถูกต้อง
           moduleName: "Module 4: Retirement Mountain",
-          // ยัดโหมด (calcMode) เข้าไปใน actionData แทน เพื่อให้เรายังรู้ว่านักเรียนใช้โหมดไหนบันทึกมา
           actionData: JSON.stringify({ mode: calcMode, ...planInputs, ...result }) 
         })
       });
@@ -134,13 +132,16 @@ export default function Module4RetirementPlanner({ user }) {
   };
 
   const renderFormulaBox = () => {
-    // ✅ ตัวแปรสำหรับการแทนค่า (Substitution)
     const isZeroInterest = planInputs.returnRate === 0;
     const i_val = planInputs.returnRate / 100 / 12;
     const i_val_str = parseFloat(i_val.toFixed(6)).toString();
     const expense_str = planInputs.monthlyExpense.toLocaleString('en-US');
+    // ✅ เพิ่มการแยกตัวแปรจำนวนปีออกมาโชว์ให้คูณ 12
+    const years_retire = Math.max(0, planInputs.lifeExpectancy - planInputs.retireAge).toString();
     const months_retire = Math.max(0, (planInputs.lifeExpectancy - planInputs.retireAge) * 12).toString();
     const target_input_str = planInputs.targetFundInput.toLocaleString('en-US');
+    // ✅ เพิ่มการแยกตัวแปรจำนวนปีทำงานออกมาโชว์ให้คูณ 12
+    const years_work = Math.max(0, planInputs.retireAge - planInputs.currentAge).toString();
     const months_work = Math.max(0, (planInputs.retireAge - planInputs.currentAge) * 12).toString();
 
     return (
@@ -189,7 +190,6 @@ export default function Module4RetirementPlanner({ user }) {
           </div>
         )}
 
-        {/* ✅ เพิ่มกระดานแสดงการแทนค่าในสูตร (Substitution Board) */}
         <div className="mt-8 bg-slate-800/80 p-5 md:p-6 rounded-[1.5rem] border border-amber-500/20 shadow-inner relative overflow-x-auto custom-scrollbar">
           <div className="flex items-center gap-2 mb-4 opacity-90 border-b border-amber-500/20 pb-2">
             <span className="material-symbols-outlined text-amber-400 text-lg">edit_square</span>
@@ -202,7 +202,8 @@ export default function Module4RetirementPlanner({ user }) {
                 {isZeroInterest ? (
                   <div className="flex items-center gap-2">
                     <span className="not-italic font-bold text-sm md:text-lg">เป้าหมาย =</span>
-                    <span>{expense_str} × {months_retire}</span>
+                    {/* ✅ เพิ่มการคูณ 12 ตามที่ขอ */}
+                    <span>{expense_str} × 12 × {years_retire}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
@@ -231,7 +232,8 @@ export default function Module4RetirementPlanner({ user }) {
                       <div className="border-b-2 border-amber-400 px-3 pb-1">
                         {target_input_str}
                       </div>
-                      <span className="pt-1">{months_work}</span>
+                      {/* ✅ เพิ่มการคูณ 12 ตามที่ขอ */}
+                      <span className="pt-1">{years_work} × 12</span>
                     </div>
                   </div>
                 ) : (
@@ -328,7 +330,8 @@ export default function Module4RetirementPlanner({ user }) {
                   </>
                 )}
                 
-                <InputField label="ผลตอบแทนการลงทุน (% ต่อปี) *ใส่ 0 เพื่อคิดตามหนังสือ" name="returnRate" value={planInputs.returnRate} onChange={handleInputChange} icon="trending_up" />
+                {/* ✅ ลบดอกจัน (*) ออกตามที่ขอ */}
+                <InputField label="ผลตอบแทนการลงทุน (% ต่อปี)" name="returnRate" value={planInputs.returnRate} onChange={handleInputChange} icon="trending_up" />
               </div>
 
               <button onClick={calculateRetirement} className="w-full py-5 md:py-6 bg-slate-900 text-white font-black rounded-[1.5rem] md:rounded-3xl shadow-xl hover:bg-fuchsia-600 hover:scale-[1.02] transition-all active:scale-95 text-xl md:text-2xl tracking-tight flex items-center justify-center gap-3 group mt-4">
@@ -439,7 +442,6 @@ export default function Module4RetirementPlanner({ user }) {
         </div>
       </div>
 
-      {/* ✅ แก้ชื่อ Module ตรง History ให้ตรงกับชื่อตอนบันทึก */}
       <HistoryModal 
         isOpen={isHistoryOpen} 
         onClose={() => setIsHistoryOpen(false)} 
@@ -451,7 +453,6 @@ export default function Module4RetirementPlanner({ user }) {
   );
 }
 
-// ✅ เพิ่ม toLocaleString('en-US') เพื่อให้มีเครื่องหมายลูกน้ำในช่องกรอก
 function InputField({ label, name, value, onChange, icon }) {
   return (
     <div className="space-y-1.5 pb-2">

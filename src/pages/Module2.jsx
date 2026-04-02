@@ -10,9 +10,8 @@ export default function Module2TaxSimulator({ user }) {
     m40_5: 0, m40_6: 0, m40_7: 0, m40_8: 0
   });
 
-  // ✅ เพิ่ม State สำหรับเก็บประเภทของทรัพย์สินให้เช่า 40(5)
   const [incomeTypes, setIncomeTypes] = useState({
-    m40_5_type: 'house' // ค่าเริ่มต้น: house (บ้าน/อาคาร 30%), agri_land (ที่ดินเกษตร 20%), other_land (ที่ดินอื่นๆ 15%)
+    m40_5_type: 'house' 
   });
 
   const [deductions, setDeductions] = useState({
@@ -20,9 +19,9 @@ export default function Module2TaxSimulator({ user }) {
     spouse: false, parentsCount: 0, childrenOld: 0, childrenNew: 0, 
     // กลุ่ม 2
     socialSecurity: 0, lifeInsurance: 0, healthInsurance: 0, parentsHealth: 0,
-    rmf: 0, ssf: 0, pension: 0, thaiEsg: 0, nsf: 0, pvd: 0, // ✅ เพิ่ม pvd (กบข./กองทุนสำรองเลี้ยงชีพ)
+    rmf: 0, ssf: 0, pension: 0, thaiEsg: 0, nsf: 0, pvd: 0, 
     // กลุ่ม 4
-    homeLoanInterest: 0, newHome: 0,
+    homeLoanInterest: 0,
     // กลุ่ม 3
     donationEdu: 0, donationGeneral: 0 
   });
@@ -34,74 +33,62 @@ export default function Module2TaxSimulator({ user }) {
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUVKsqX1FXfZSELbVu1twgDd_pwQ7LVgVDpb8Stw6pJUc9u0ft6aMfUVXoK1oIOj_bQ/exec";
 
   const calculateTax = () => {
-    // 1. รวมเงินได้พึงประเมิน
     const totalIncome = Object.values(incomes).reduce((a, b) => a + b, 0);
     const incomeType2to8 = totalIncome - incomes.m40_1;
 
-    // ✅ ฟังก์ชันดึงอัตราหักค่าใช้จ่ายเหมา 40(5) ตามกฎหมาย
     const getM40_5_Rate = (type) => {
       switch(type) {
-        case 'agri_land': return 0.20; // ที่ดินเพื่อการเกษตร
-        case 'other_land': return 0.15; // ที่ดินอื่นๆ
-        default: return 0.30; // บ้าน, อาคาร, สิ่งปลูกสร้าง, ยานพาหนะ
+        case 'agri_land': return 0.20; 
+        case 'other_land': return 0.15; 
+        default: return 0.30; 
       }
     };
 
-    // 2. คำนวณค่าใช้จ่าย
     const exp1_2 = Math.min((incomes.m40_1 + incomes.m40_2) * 0.5, 100000);
     const exp3 = Math.min(incomes.m40_3 * 0.5, 100000);
     const exp4 = 0; 
-    const exp5 = incomes.m40_5 * getM40_5_Rate(incomeTypes.m40_5_type); // ✅ ใช้เรทแบบไดนามิก
+    const exp5 = incomes.m40_5 * getM40_5_Rate(incomeTypes.m40_5_type); 
     const exp6 = incomes.m40_6 * 0.3; 
     const exp7 = incomes.m40_7 * 0.6; 
     const exp8 = incomes.m40_8 * 0.6; 
     const totalExpense = exp1_2 + exp3 + exp4 + exp5 + exp6 + exp7 + exp8;
 
-    // 3. คำนวณค่าลดหย่อน
-    // กลุ่ม 1: ครอบครัว
     const dedPersonal = 60000;
     const dedSpouse = deductions.spouse ? 60000 : 0;
     const dedParents = deductions.parentsCount * 30000;
+    // ✅ สูตรคำนวณบุตร (ช่องแรคูณ 3 หมื่น / ช่องสองคูณ 6 หมื่น)
     const dedChildren = (deductions.childrenOld * 30000) + (deductions.childrenNew * 60000);
     const group1 = dedPersonal + dedSpouse + dedParents + dedChildren;
 
-    // กลุ่ม 2: ประกัน/ลงทุน
     const dedSocial = Math.min(deductions.socialSecurity, 9000);
     const rawHealth = Math.min(deductions.healthInsurance, 25000);
     const dedLifeHealth = Math.min(deductions.lifeInsurance + rawHealth, 100000);
     const dedParentsHealth = Math.min(deductions.parentsHealth, 15000);
     
-    // ✅ เพิ่มการคำนวณ PVD / กบข. (ลดหย่อนได้ 15% ของรายได้ และไม่เกิน 5 แสน)
     const dedPVD = Math.min(deductions.pvd || 0, 500000, totalIncome * 0.15);
     const dedRMF = Math.min(deductions.rmf, 500000, totalIncome * 0.3);
     const dedSSF = Math.min(deductions.ssf, 200000, totalIncome * 0.3);
     const dedPension = Math.min(deductions.pension, 200000, totalIncome * 0.15);
     const dedNSF = Math.min(deductions.nsf || 0, 30000); 
     
-    // ✅ รวมโควตากลุ่มเกษียณทั้งหมดต้องไม่เกิน 5 แสน
     const totalInvest = Math.min(dedPVD + dedRMF + dedSSF + dedPension + dedNSF, 500000); 
     
     const dedThaiEsg = Math.min(deductions.thaiEsg, 300000, totalIncome * 0.3);
     const group2 = dedSocial + dedLifeHealth + dedParentsHealth + totalInvest + dedThaiEsg;
 
-    // กลุ่ม 4: อสังหาฯ และสร้างบ้าน
     const dedHomeLoan = Math.min(deductions.homeLoanInterest, 100000);
-    const dedNewHome = Math.min(deductions.newHome, 100000); 
-    const group4 = dedHomeLoan + dedNewHome;
+    const group4 = dedHomeLoan;
 
     const totalDedBeforeDonation = group1 + group2 + group4;
     const netBeforeDonation = Math.max(0, totalIncome - totalExpense - totalDedBeforeDonation);
 
-    // กลุ่ม 3: เงินบริจาค
     const dedDonationEdu = Math.min(deductions.donationEdu * 2, netBeforeDonation * 0.1); 
     const netAfterEdu = Math.max(0, netBeforeDonation - dedDonationEdu);
     const dedDonationGeneral = Math.min(deductions.donationGeneral, netAfterEdu * 0.1);
     const group3 = dedDonationEdu + dedDonationGeneral;
 
-    // 4. เงินได้สุทธิ (Net Income)
     const netIncome = Math.max(0, netAfterEdu - dedDonationGeneral);
 
-    // 5. คำนวณภาษีวิธีที่ 1 (ขั้นบันได)
     let remainingNet = netIncome;
     let totalTaxMethod1 = 0;
     const steps = [];
@@ -128,13 +115,11 @@ export default function Module2TaxSimulator({ user }) {
       }
     });
 
-    // 6. คำนวณภาษีวิธีที่ 2
     const taxMethod2 = incomeType2to8 * 0.005;
     const isMethod2Applicable = taxMethod2 > 5000;
     const finalTaxToPay = isMethod2Applicable ? Math.max(totalTaxMethod1, taxMethod2) : totalTaxMethod1;
     const winningMethod = isMethod2Applicable && taxMethod2 > totalTaxMethod1 ? 2 : 1;
 
-    // 🤖 7. AI Advisor Logic
     const marginalRate = steps.findLast(s => s.amount > 0)?.rate || 0;
     const aiMessages = [];
     
@@ -150,7 +135,6 @@ export default function Module2TaxSimulator({ user }) {
       if (unusedLife > 5000) aiMessages.push(`🛡️ ประกันชีวิต/สุขภาพ: คุณยังมีโควตาซื้อประกันเพิ่มได้อีก ฿${unusedLife.toLocaleString()}`);
 
       const unusedRetire = Math.max(0, 500000 - totalInvest);
-      // ✅ เพิ่มคำแนะนำ กบข./PVD เข้าไปใน AI Message
       if (unusedRetire > 10000) aiMessages.push(`📈 กองทุนเกษียณ (กบข./PVD/RMF/SSF/บำนาญ/กอช.): ยังลงทุนรวมกันเพิ่มได้อีก ฿${unusedRetire.toLocaleString()}`);
 
       if (deductions.donationEdu === 0) aiMessages.push(`🎓 ทริคพิเศษ: บริจาคให้สถานศึกษาหรือโรงพยาบาลรัฐ ผ่าน e-Donation สามารถนำมาหักลดหย่อนได้ถึง 2 เท่าเลยนะครับ!`);
@@ -257,8 +241,10 @@ export default function Module2TaxSimulator({ user }) {
                 <input type="checkbox" checked={deductions.spouse} onChange={(e)=>setDeductions({...deductions, spouse: e.target.checked})} className="w-5 h-5 md:w-6 md:h-6 accent-blue-600 cursor-pointer" />
               </div>
               <Input label="จำนวนบิดามารดา (อายุ 60 ปีขึ้นไป รายได้ไม่เกิน 30,000/ปี)" value={deductions.parentsCount} onChange={(v)=>setDeductions({...deductions, parentsCount: v})} multiplier="คน" icon="elderly" />
-              <Input label="บุตร (เกิดก่อนปี 2561 - หักได้ 30,000/คน)" value={deductions.childrenOld} onChange={(v)=>setDeductions({...deductions, childrenOld: v})} multiplier="คน" icon="child_care" />
-              <Input label="บุตร (เกิดตั้งแต่ปี 2561 - หักได้ 60,000/คน)" value={deductions.childrenNew} onChange={(v)=>setDeductions({...deductions, childrenNew: v})} multiplier="คน" icon="baby_changing_station" />
+              
+              {/* ✅ ปรับข้อความของบุตรให้ชัดเจนป้องกันเด็กสับสน */}
+              <Input label="บุตรคนที่ 1 หรือเกิดก่อนปี 2561 (หักได้ 30,000/คน)" value={deductions.childrenOld} onChange={(v)=>setDeductions({...deductions, childrenOld: v})} multiplier="คน" icon="child_care" />
+              <Input label="บุตรคนที่ 2 ขึ้นไปที่เกิดตั้งแต่ปี 2561 เป็นต้นไป (หักได้ 60,000/คน)" value={deductions.childrenNew} onChange={(v)=>setDeductions({...deductions, childrenNew: v})} multiplier="คน" icon="baby_changing_station" />
             </FormSection>
             
             <FormSection title="กลุ่ม 2: ประกันและการลงทุน" icon="verified">
@@ -276,9 +262,8 @@ export default function Module2TaxSimulator({ user }) {
 
             <FormSection title="กลุ่ม 3 และ 4: อสังหาฯและบริจาค" icon="cottage">
               <Input label="ดอกเบี้ยกู้ยืมเพื่อซื้อที่อยู่อาศัย (จ่ายจริง สูงสุด 100,000)" value={deductions.homeLoanInterest} onChange={(v)=>setDeductions({...deductions, homeLoanInterest: v})} icon="home" />
-              <Input label="สร้างบ้านใหม่ (ล้านละ 10,000 สูงสุด 100,000)" value={deductions.newHome} onChange={(v)=>setDeductions({...deductions, newHome: v})} icon="architecture" />
-              <Input label="บริจาคการศึกษา/รพ./กีฬา (ผ่าน e-Donation ลดหย่อน 2 เท่า)" value={deductions.donationEdu} onChange={(v)=>setDeductions({...deductions, donationEdu: v})} icon="school" />
-              <Input label="บริจาคทั่วไป (มูลนิธิ/วัด ตามจ่ายจริง ไม่เกิน 10% ของเงินได้สุทธิ)" value={deductions.donationGeneral} onChange={(v)=>setDeductions({...deductions, donationGeneral: v})} icon="redeem" />
+              <Input label="เงินบริจาคเพื่อการศึกษา/กีฬา/รพ.รัฐ (ลดหย่อนได้ 2 เท่า ไม่เกิน 10% ของเงินได้หลังหักลดหย่อนอื่นๆ)" value={deductions.donationEdu} onChange={(v)=>setDeductions({...deductions, donationEdu: v})} icon="school" />
+              <Input label="เงินบริจาคทั่วไป (มูลนิธิ/วัด ลดได้ตามจริง ไม่เกิน 10% ของเงินได้หลังหักลดหย่อนอื่นๆ)" value={deductions.donationGeneral} onChange={(v)=>setDeductions({...deductions, donationGeneral: v})} icon="redeem" />
             </FormSection>
 
             <div className="flex items-end">
@@ -301,7 +286,7 @@ export default function Module2TaxSimulator({ user }) {
                       ฿{result.taxToPay.toLocaleString(undefined, {minimumFractionDigits: 2})}
                     </h2>
                     <p className="text-emerald-300 font-bold text-xs md:text-sm">
-                       (เสียภาษีด้วยวิธีที่ {result.details.winningMethod})
+                       {result.taxToPay === 0 ? '(ไม่เสียภาษี)' : `(เสียภาษีด้วยวิธีที่ ${result.details.winningMethod})`}
                     </p>
                   </div>
                   <button onClick={saveToSheets} disabled={isSubmitting} className={`w-full lg:w-auto px-5 md:px-10 py-3 md:py-5 font-black rounded-xl md:rounded-3xl shadow-xl transition-all flex items-center justify-center gap-2 text-sm md:text-lg ${isSubmitting ? 'bg-white/20 text-white' : 'bg-white text-blue-700 active:scale-95'}`}>
@@ -336,7 +321,7 @@ export default function Module2TaxSimulator({ user }) {
                 <DetailRow label="รวมเงินได้พึงประเมินทั้งหมด" value={result.details.totalIncome} isBold color="text-slate-800" />
                 <DetailRow label="หัก ค่าใช้จ่ายตามกฎหมาย" value={`- ${result.details.totalExpense.toLocaleString()}`} color="text-rose-500" />
                 <div className="pl-4 md:pl-6 border-l-2 border-slate-100 space-y-2 py-2">
-                  <DetailRow label="หัก ลดหย่อนกลุ่ม 1 (ครอบครัว)" value={`- ${result.details.group1.toLocaleString()}`} color="text-emerald-600" isSub />
+                  <DetailRow label="หัก ลดหย่อนกลุ่ม 1 (ส่วนตัว/ครอบครัว)" value={`- ${result.details.group1.toLocaleString()}`} color="text-emerald-600" isSub />
                   <DetailRow label="หัก ลดหย่อนกลุ่ม 2 (ประกัน/ลงทุน)" value={`- ${result.details.group2.toLocaleString()}`} color="text-emerald-600" isSub />
                   <DetailRow label="หัก ลดหย่อนกลุ่ม 4 (อสังหาฯ)" value={`- ${result.details.group4.toLocaleString()}`} color="text-emerald-600" isSub />
                   <DetailRow label="หัก ลดหย่อนกลุ่ม 3 (เงินบริจาค)" value={`- ${result.details.group3.toLocaleString()}`} color="text-emerald-600" isSub />
@@ -347,20 +332,10 @@ export default function Module2TaxSimulator({ user }) {
               </div>
             </div>
 
-            {result.details.isMethod2Applicable && (
-              <div className="bg-amber-50 border border-amber-200 p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem]">
-                <p className="text-xs md:text-sm font-black text-amber-800 mb-2">⚖️ เปรียบเทียบวิธีคำนวณภาษี (รายได้ประเภท 2-8 เกินเกณฑ์):</p>
-                <ul className="text-[10px] md:text-xs text-amber-700 font-bold space-y-1 list-disc pl-4">
-                  <li>วิธีที่ 1 (ขั้นบันได): ฿{result.details.taxMethod1.toLocaleString()}</li>
-                  <li>วิธีที่ 2 (เหมา 0.5%): ฿{result.details.taxMethod2.toLocaleString()}</li>
-                  <li className="text-rose-600 mt-2">กฎหมายบังคับให้เสียภาษีตามวิธีที่คำนวณได้สูงกว่า</li>
-                </ul>
-              </div>
-            )}
-
+            {/* ย้ายตารางคำนวณขึ้นมาก่อนเปรียบเทียบ */}
             <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] md:rounded-[3rem] border border-white shadow-xl overflow-hidden">
               <div className="p-5 md:p-8 border-b border-slate-100 bg-slate-50/50">
-                <h3 className="font-black text-slate-800 text-base md:text-xl flex items-center gap-2"><span className="material-symbols-outlined text-blue-500">stairs</span> ตารางคำนวณภาษีแบบขั้นบันได</h3>
+                <h3 className="font-black text-slate-800 text-base md:text-xl flex items-center gap-2"><span className="material-symbols-outlined text-blue-500">stairs</span> ตารางคำนวณภาษีแบบขั้นบันได (วิธีที่ 1)</h3>
               </div>
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[450px]">
@@ -381,9 +356,57 @@ export default function Module2TaxSimulator({ user }) {
                         <td className={`px-4 md:px-8 py-3 md:py-5 text-right font-black ${step.amount > 0 ? 'text-slate-800' : 'text-slate-300'}`}>฿{step.tax.toLocaleString()}</td>
                       </tr>
                     ))}
+                    <tr className="bg-blue-50/80 border-t-2 border-blue-100">
+                      <td colSpan="3" className="px-4 md:px-8 py-4 text-right font-black text-blue-800">รวมภาษีสะสม (วิธีที่ 1)</td>
+                      <td className="px-4 md:px-8 py-4 text-right font-black text-blue-800 text-sm md:text-base">฿{result.details.taxMethod1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            {/* เพิ่มกล่องเปรียบเทียบวิธีที่ 2 */}
+            {(result.details.totalIncome - incomes.m40_1) > 0 && (
+              <div className="bg-amber-50 border border-amber-200 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm">
+                <h3 className="text-sm md:text-base font-black text-amber-800 mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined">balance</span>
+                  เปรียบเทียบวิธีคำนวณภาษี (เนื่องจากมีรายได้ประเภท 2-8)
+                </h3>
+                <div className="space-y-3">
+                  <div className="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-amber-100">
+                    <p className="text-[10px] md:text-xs font-bold text-slate-500 mb-1">📌 วิธีที่ 1: คำนวณจากเงินได้สุทธิแบบขั้นบันได (จากตารางด้านบน)</p>
+                    <p className="text-lg md:text-xl font-black text-blue-600">฿{result.details.taxMethod1.toLocaleString()}</p>
+                  </div>
+                  
+                  <div className="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-amber-100">
+                    <p className="text-[10px] md:text-xs font-bold text-slate-500 mb-1">📌 วิธีที่ 2: คำนวณจากเงินได้พึงประเมิน ประเภท 2-8 (เหมา 0.5%)</p>
+                    <div className="flex flex-wrap items-center gap-1.5 md:gap-2 text-xs md:text-sm font-black text-slate-700 bg-amber-50/50 px-3 py-2.5 rounded-lg w-fit mb-3 border border-amber-100/50">
+                      <span>฿{(result.details.totalIncome - incomes.m40_1).toLocaleString()}</span>
+                      <span className="text-amber-500">×</span>
+                      <span>0.005</span>
+                      <span className="text-amber-500">=</span>
+                      <span className="text-rose-600">฿{result.details.taxMethod2.toLocaleString()}</span>
+                    </div>
+                    
+                    {result.details.taxMethod2 <= 5000 ? (
+                      <p className="text-[10px] md:text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg inline-block border border-emerald-100">
+                        ✅ ภาษีวิธีที่ 2 ไม่เกิน 5,000 บาท จึงได้รับการยกเว้น (ให้เสียภาษีตามวิธีที่ 1)
+                      </p>
+                    ) : (
+                      <p className="text-[10px] md:text-xs font-bold text-rose-600 bg-rose-50 px-3 py-2 rounded-lg inline-block border border-rose-100">
+                        ⚠️ ภาษีวิธีที่ 2 เกิน 5,000 บาท (กฎหมายบังคับให้เสียภาษีตามวิธีที่คำนวณได้สูงกว่า)
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* เพิ่มเครดิตอ้างอิง */}
+            <div className="text-center pt-2 pb-6 opacity-60">
+              <p className="text-[10px] md:text-xs font-bold text-slate-500">
+                * อ้างอิงเกณฑ์การคำนวณและหักลดหย่อนภาษี ปีภาษี 2565 (ตามหนังสือเรียน สสวท.)
+              </p>
             </div>
 
           </div>
@@ -409,7 +432,6 @@ function FormSection({ title, subtitle, icon, children }) {
   );
 }
 
-// ✅ เพิ่ม toLocaleString('en-US') เพื่อให้มีเครื่องหมายลูกน้ำ
 function Input({ label, value, onChange, multiplier = "บาท", icon }) {
   return (
     <div className="space-y-1">
@@ -431,7 +453,6 @@ function Input({ label, value, onChange, multiplier = "บาท", icon }) {
   );
 }
 
-// ✅ เพิ่ม toLocaleString('en-US') ให้กับ RentInput ด้วยเช่นกัน
 function RentInput({ label, value, onChange, typeValue, onTypeChange, multiplier = "บาท", icon }) {
   return (
     <div className="space-y-1">

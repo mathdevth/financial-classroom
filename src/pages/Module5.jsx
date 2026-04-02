@@ -98,9 +98,11 @@ export default function Module5LifePlanner({ user }) {
 
   // ✅ ฟังก์ชันแสดงสูตรและกระดานแทนค่า
   const renderFormulaBox = () => {
-    const yearlyIncomeSub = inputs.startingSalary * 12;
+    const monthlyIncomeSub = inputs.startingSalary;
+    const monthlyExpenseSub = inputs.monthlyExpense;
+    const yearlyIncomeSub = monthlyIncomeSub * 12;
     const yearlyTaxSub = calculateYearlyTax(yearlyIncomeSub);
-    const yearlyExpenseSub = inputs.monthlyExpense * 12;
+    const yearlyExpenseSub = monthlyExpenseSub * 12;
     const surplusSub = Math.max(0, yearlyIncomeSub - yearlyTaxSub - yearlyExpenseSub);
 
     return (
@@ -117,27 +119,27 @@ export default function Module5LifePlanner({ user }) {
             วิธีหาเงินคงเหลือเพื่อนำไปจัดสรร (Surplus) ในปีแรก
           </p>
           
-          {/* แถวแสดง Model พื้นฐาน */}
+          {/* ✅ แถวแสดง Model พื้นฐาน ปรับข้อความให้สอดคล้องกับ Input */}
           <div className="overflow-x-auto custom-scrollbar pb-2">
             <div className="flex items-center justify-center gap-2 text-[10px] sm:text-sm md:text-base font-black text-cyan-50 whitespace-nowrap w-max mx-auto opacity-60">
-              <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30">รายได้ต่อปี</span>
+              <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30">รายได้ (ด. × 12)</span>
               <span className="text-cyan-400 font-bold">-</span>
               <span className="bg-rose-500/20 text-rose-300 px-3 py-1.5 rounded-lg border border-rose-500/30">ภาษีรายปี</span>
               <span className="text-cyan-400 font-bold">-</span>
-              <span className="bg-orange-500/20 text-orange-300 px-3 py-1.5 rounded-lg border border-orange-500/30">ค่าใช้จ่ายรายปี</span>
+              <span className="bg-orange-500/20 text-orange-300 px-3 py-1.5 rounded-lg border border-orange-500/30">รายจ่าย (ด. × 12)</span>
               <span className="text-cyan-400 font-bold">=</span>
               <span className="bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-lg border border-blue-500/30">เงินก้อนเพื่อจัดสรร</span>
             </div>
           </div>
 
-          {/* ✅ แถวแสดงการแทนค่า (Substitution Board) แบบ Real-time */}
+          {/* ✅ แถวแสดงการแทนค่า (Substitution Board) เพิ่มคูณ 12 เข้าไปให้เด็กเห็นภาพ */}
           <div className="bg-slate-800/80 p-4 md:p-6 rounded-[1.5rem] border border-amber-500/20 shadow-inner mt-4 overflow-x-auto custom-scrollbar">
              <div className="flex items-center justify-center gap-2 md:gap-4 text-xs sm:text-base md:text-lg font-black text-amber-100 whitespace-nowrap w-max mx-auto italic">
-                <span className="text-emerald-300">{yearlyIncomeSub.toLocaleString()}</span>
+                <span className="text-emerald-300">({monthlyIncomeSub.toLocaleString()} × 12)</span>
                 <span className="text-amber-400 not-italic">-</span>
                 <span className="text-rose-300">{yearlyTaxSub.toLocaleString()}</span>
                 <span className="text-amber-400 not-italic">-</span>
-                <span className="text-orange-300">{yearlyExpenseSub.toLocaleString()}</span>
+                <span className="text-orange-300">({monthlyExpenseSub.toLocaleString()} × 12)</span>
                 <span className="text-amber-400 not-italic">=</span>
                 <span className="text-blue-300 text-lg md:text-2xl px-2 py-1 bg-blue-500/10 rounded-lg border border-blue-400/30">
                   ฿{surplusSub.toLocaleString()}
@@ -256,6 +258,7 @@ export default function Module5LifePlanner({ user }) {
                       <XAxis dataKey="year" tick={{fontSize: 9, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
                       <YAxis hide />
                       
+                      {/* ✅ แปลง Tooltip ให้แสดงภาษาไทย */}
                       <Tooltip 
                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'black', fontSize: '12px' }} 
                         formatter={(value, name) => {
@@ -265,6 +268,7 @@ export default function Module5LifePlanner({ user }) {
                         }}
                       />
                       
+                      {/* ✅ แปลง Legend (คำอธิบายสีของกราฟ) ให้เป็นภาษาไทย */}
                       <Legend 
                         verticalAlign="top" 
                         wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }} 
@@ -300,6 +304,14 @@ export default function Module5LifePlanner({ user }) {
             )}
           </div>
         </div>
+
+        {/* ✅ เพิ่มแหล่งอ้างอิงข้อมูลด้านล่างสุด */}
+        <div className="text-center pt-2 pb-6 opacity-60">
+          <p className="text-[10px] md:text-xs font-bold text-slate-500">
+            * อ้างอิงหลักการจัดสรรเงินแบบ 50-30-20 (Elizabeth Warren) และโครงสร้างภาษีเงินได้บุคคลธรรมดาจากกรมสรรพากร
+          </p>
+        </div>
+
       </div>
 
       <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} userId={user.id} moduleName="Module 5: Wealth Galaxy" GOOGLE_SCRIPT_URL={GOOGLE_SCRIPT_URL} />
