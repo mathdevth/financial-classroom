@@ -133,14 +133,15 @@ export default function Module4RetirementPlanner({ user }) {
 
   const renderFormulaBox = () => {
     const isZeroInterest = planInputs.returnRate === 0;
-    const i_val = planInputs.returnRate / 100 / 12;
-    const i_val_str = parseFloat(i_val.toFixed(6)).toString();
+    const r_val_str = (planInputs.returnRate / 100).toString(); // ทศนิยมของผลตอบแทนต่อปี
+    
+    // ✅ แจกแจงที่มาของตัวเลข 0.001667 (เพื่อให้เด็กเข้าใจ)
+    const i_formula_str = `(${r_val_str} ÷ 12)`; 
+    
     const expense_str = planInputs.monthlyExpense.toLocaleString('en-US');
-    // ✅ เพิ่มการแยกตัวแปรจำนวนปีออกมาโชว์ให้คูณ 12
     const years_retire = Math.max(0, planInputs.lifeExpectancy - planInputs.retireAge).toString();
     const months_retire = Math.max(0, (planInputs.lifeExpectancy - planInputs.retireAge) * 12).toString();
     const target_input_str = planInputs.targetFundInput.toLocaleString('en-US');
-    // ✅ เพิ่มการแยกตัวแปรจำนวนปีทำงานออกมาโชว์ให้คูณ 12
     const years_work = Math.max(0, planInputs.retireAge - planInputs.currentAge).toString();
     const months_work = Math.max(0, (planInputs.retireAge - planInputs.currentAge) * 12).toString();
 
@@ -202,7 +203,6 @@ export default function Module4RetirementPlanner({ user }) {
                 {isZeroInterest ? (
                   <div className="flex items-center gap-2">
                     <span className="not-italic font-bold text-sm md:text-lg">เป้าหมาย =</span>
-                    {/* ✅ เพิ่มการคูณ 12 ตามที่ขอ */}
                     <span>{expense_str} × 12 × {years_retire}</span>
                   </div>
                 ) : (
@@ -212,11 +212,12 @@ export default function Module4RetirementPlanner({ user }) {
                       <div className="border-b-2 border-amber-400 px-3 pb-1.5 flex items-center">
                         <span>{expense_str}</span>
                         <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">(</span>
-                        <span>1 - (1+{i_val_str})</span>
+                        {/* ✅ แสดงที่มาของตัวเลข 0.001667 */}
+                        <span>1 - (1 + {i_formula_str})</span>
                         <sup className="text-[10px] md:text-xs -mt-3 md:-mt-4">-{months_retire}</sup>
                         <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">)</span>
                       </div>
-                      <span className="pt-1.5">{i_val_str}</span>
+                      <span className="pt-1.5">{i_formula_str}</span>
                     </div>
                   </div>
                 )}
@@ -232,7 +233,6 @@ export default function Module4RetirementPlanner({ user }) {
                       <div className="border-b-2 border-amber-400 px-3 pb-1">
                         {target_input_str}
                       </div>
-                      {/* ✅ เพิ่มการคูณ 12 ตามที่ขอ */}
                       <span className="pt-1">{years_work} × 12</span>
                     </div>
                   </div>
@@ -240,12 +240,15 @@ export default function Module4RetirementPlanner({ user }) {
                   <div className="flex items-center gap-3">
                     <span className="not-italic font-bold text-sm md:text-lg">เงินออมต่อเดือน =</span>
                     <div className="flex flex-col items-center">
-                      <div className="border-b-2 border-amber-400 px-3 pb-1.5">
-                        {target_input_str} × {i_val_str}
+                      <div className="border-b-2 border-amber-400 px-3 pb-1.5 flex items-center gap-1.5">
+                        <span>{target_input_str}</span>
+                        <span className="text-amber-500">×</span>
+                        {/* ✅ แสดงที่มาของตัวเลข 0.001667 */}
+                        <span>{i_formula_str}</span>
                       </div>
                       <div className="pt-1.5 flex items-center">
                         <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">(</span>
-                        <span>(1+{i_val_str})</span>
+                        <span>(1 + {i_formula_str})</span>
                         <sup className="text-[10px] md:text-xs -mt-3 md:-mt-4">{months_work}</sup>
                         <span>&nbsp;- 1</span>
                         <span className="text-2xl md:text-4xl font-light mx-1 md:mx-2 mt-[-2px] md:mt-[-4px]">)</span>
@@ -330,7 +333,6 @@ export default function Module4RetirementPlanner({ user }) {
                   </>
                 )}
                 
-                {/* ✅ ลบดอกจัน (*) ออกตามที่ขอ */}
                 <InputField label="ผลตอบแทนการลงทุน (% ต่อปี)" name="returnRate" value={planInputs.returnRate} onChange={handleInputChange} icon="trending_up" />
               </div>
 
